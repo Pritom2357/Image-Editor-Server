@@ -6,7 +6,7 @@ const UserModel = require('../models/userModel');
 const envPath = path.join(__dirname, '../.env');
 dotenv.config({ path: envPath });
 
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
