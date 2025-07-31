@@ -40,6 +40,9 @@ router.post('/remove-background', authenticateToken, upload.single('image'), Edi
 // Object removal for additional cleanup
 router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorController.removeObjectsNew);
 
+// Mask creation route
+// router.post('/create-mask', authenticateToken, upload.single('image'), EditorController.createMaskOnly);
+
 // EXISTING ROUTES (keep for compatibility)
 
 // Outpaint (image outpainting)
@@ -47,7 +50,6 @@ router.post('/outpaint', authenticateToken, upload.single('image'), EditorContro
 
 // Text to Image
 router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
-
 
 
 

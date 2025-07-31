@@ -13,5 +13,17 @@ router.get('/credits/:userId', authenticateToken, UserController.checkCredits);
 router.post('/credits/:userId/use', authenticateToken, UserController.useCredits);
 router.get('/uuid/:uuid', authenticateToken, UserController.getUserByUuid);
 router.get('/usage/:uuid', UserController.getUsage);
+router.post('/verify-token', authenticateToken, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Token is valid',
+    user: {
+      id: req.user.id,
+      uuid: req.user.uuid,
+      username: req.user.username,
+      email: req.user.email
+    }
+  });
+});
 
-module.exports = router; 
+module.exports = router;
