@@ -26,8 +26,6 @@ router.get('/test-routes', (req, res) => {
             'POST /api/remove-objects',
             'POST /api/outpaint',
             'POST /api/txt-2-img',
-            'POST /api/remove-bg',
-            'POST /api/create-mask',
             'POST /api/img-2-img',
             'POST /api/enhance-image'
         ]
@@ -37,7 +35,7 @@ router.get('/test-routes', (req, res) => {
 // NEW WORKFLOW ROUTES
 
 // Primary background removal using removebg_mask API
-router.post('/remove-background', authenticateToken, upload.single('image'), EditorController.removeBackgroundNew);
+router.post('/remove-background', authenticateToken, upload.single('image'), EditorController.removeBG);
 
 // Object removal for additional cleanup
 router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorController.removeObjectsNew);
@@ -50,14 +48,8 @@ router.post('/outpaint', authenticateToken, upload.single('image'), EditorContro
 // Text to Image
 router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
 
-// Legacy Remove Background - keep for backward compatibility
-router.post('/remove-bg', authenticateToken, upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'mask', maxCount: 1 }
-]), EditorController.removeBg);
 
-// Create Mask
-router.post('/create-mask', authenticateToken, upload.single('image'), EditorController.createMaskOnly);
+
 
 // Image to Image
 router.post('/img-2-img', authenticateToken, upload.single('image'), EditorController.imageToImage);
@@ -65,7 +57,5 @@ router.post('/img-2-img', authenticateToken, upload.single('image'), EditorContr
 // Enhance Image
 router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
 
-// Legacy route for 2-step workflow
-router.post('/remove-bg-with-mask', authenticateToken, upload.single('image'), EditorController.removeBgWithMask);
 
 module.exports = router;

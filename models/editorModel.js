@@ -110,98 +110,42 @@ class EditorModel {
     }
 
     /*
-     * Step 2: Remove background using existing mask
+     *Remove background using existing mask
     */
-    static async removeBgWithMask({ imageFile, imageName, maskUrl }) {
-        try {
-            const imageUrl = await uploadToCloud(imageFile, imageName);
-            console.log('Removing background with mask:', maskUrl);
+    
 
-            // Step 2: Remove background using the mask
-            const response = await axios.post(EditorModel.REMOVE_BG_URL, {
+    static async removeBG({imageFile, imageName, alpha_matting = true, post_process_mask = true}){
+        try {
+            console.log("Starting Background removal");
+            console.log(`BG removal endpoint: ${process.env.MODELSLAB_REMOVEBG_MASK_URL}`);
+
+            const imageUrl = await uploadToCloud(imageFile, imageName);
+            console.log("Image uploaded to:", imageUrl);
+
+            const response = await axios.post(process.env.MODELSLAB_REMOVEBG_MASK_URL, {
                 key: EditorModel.MODELSLAB_API_KEY,
-                image: imageUrl,
-                mask: maskUrl, // Use the pre-generated mask
-                only_mask: false, // Return the final image
-                inverse_mask: false,
-                alpha_matting: true,
-                post_process_mask: true,
+                image: imageUrl,  
+                post_process_mask: post_process_mask,
+                only_mask: false,  // Returns processed image, not just mask
+                alpha_matting: alpha_matting,
+                inverse_mask: false,  // Normal background removal
+                seed: null,  
                 base64: false,
+                alpha_matting_foreground_threshold: 240,
+                alpha_matting_background_threshold: 20,
+                alpha_matting_erode_size: 5,
                 webhook: null,
-                track_id: null
+                track_id: null  
             });
 
-            return await EditorModel.handleModelResponse(response);
-        } catch (error) {
-            console.error('Error in removeBgWithMask:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /*
-     * Combined workflow: Create mask then remove background
-    */
-    static async removeBg({ imageFile, imageName, maskUrl = null, maskFile = null }) {
-        try {
-            // Upload original image
-            const imageUrl = await uploadToCloud(imageFile, imageName);
+            const result = await response.data;
+            console.log("Model slab API response: " + result);
             
-            // If mask file was provided, upload it
-            let uploadedMaskUrl = maskUrl;
-            if (maskFile) {
-                uploadedMaskUrl = await uploadToCloud(maskFile, `mask-${imageName}`);
-            }
+            return await EditorModel.handleModelResponse(response);                  
             
-            // If we have a mask, use it
-            if (uploadedMaskUrl) {
-                console.log('Using provided mask:', uploadedMaskUrl);
-                
-                // Use object removal API with mask
-                const response = await axios.post('https://modelslab.com/api/v6/image_editing/object_removal', {
-                    key: EditorModel.MODELSLAB_API_KEY,
-                    init_image: imageUrl,
-                    mask_image: uploadedMaskUrl,
-                    track_id: null,
-                    webhook: null
-                });
-                
-                return await EditorModel.handleModelResponse(response);
-            } else {
-                // No mask provided, use automatic background removal
-                // Create mask first, then remove background
-                const maskResponse = await axios.post(EditorModel.CREATEMASK_URL, {
-                    key: EditorModel.MODELSLAB_API_KEY,
-                    image: imageUrl,
-                    only_mask: true,
-                    inverse_mask: false,
-                    alpha_matting: true,
-                    post_process_mask: true,
-                    base64: false,
-                    webhook: null,
-                    track_id: null
-                });
-
-                const generatedMaskUrl = await EditorModel.handleModelResponse(maskResponse);
-                
-                // Step 2: Remove background using the mask
-                const finalResponse = await axios.post(EditorModel.REMOVE_BG_URL, {
-                    key: EditorModel.MODELSLAB_API_KEY,
-                    image: imageUrl,
-                    mask: generatedMaskUrl,
-                    only_mask: false,
-                    inverse_mask: false,
-                    alpha_matting: true,
-                    post_process_mask: true,
-                    base64: false,
-                    webhook: null,
-                    track_id: null
-                });
-
-                return await EditorModel.handleModelResponse(finalResponse);
-            }
         } catch (error) {
-            console.error('Error in removeBg:', error.response?.data || error.message);
-            throw error;
+            console.error('Error in remove background:', error.response?.data || error.message);
+            throw error; 
         }
     }
 
