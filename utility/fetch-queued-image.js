@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const fetchQueuedImage = async (fetchURL, maxRetries = 20, delayMs = 3000) => {
+const fetchQueuedImage = async (fetchURL, maxRetries = 30, delayMs = 3000) => {
     console.log('Fetching queued image result...');
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
