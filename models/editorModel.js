@@ -158,7 +158,7 @@ class EditorModel {
             console.log("Starting local background removal");
             
             return new Promise((resolve, reject)=>{
-                const pythonProcess = spawn('poetry', ['run', 'python', path.join(__dirname, '../services/background_removal_service.py')]);
+                const pythonProcess = spawn('python3', [path.join(__dirname, '../services/background_removal_service.py')]);
                 
                 let outputBuffer = Buffer.alloc(0);
                 let errorOutput = '';
@@ -198,7 +198,6 @@ class EditorModel {
                     reject(error);
                 });
                 
-                // Add timeout
                 setTimeout(() => {
                     pythonProcess.kill();
                     reject(new Error('Python process timeout'));
