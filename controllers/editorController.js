@@ -323,6 +323,57 @@ class EditorController {
             });
         }
     }
+
+    static async removeBackgroundLocal(req, res) {
+        try {
+            console.log('Local background removal request received');
+
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No image file provided'
+                });
+            }
+
+            if (process.env.NODE_ENV === 'production') {
+                try {
+                    const { execSync } = require('child_process');
+                    execSync('python3 --version', { stdio: 'ignore' });
+                    execSync('python3 -c "import rembg"', { stdio: 'ignore' });
+                } catch (error) {
+                    console.log('Python or rembg not available, falling back to API');
+                    return EditorController.removeBG(req, res);
+                }
+            }
+
+            const imageFile = req.file.buffer;
+            const imageName = req.file.originalname;
+
+            const result = await EditorModel.removeBackgroundLocal({
+                imageFile, 
+                imageName
+            });
+
+            if (result) {
+                const user = req.user;
+                const service = formatServicePath(req.path);
+                trackUsage(user.uuid, user.username, user.email, service);
+
+                res.status(200).json({
+                    success: true,
+                    image: result,
+                    message: "Background removed locally - much faster!"
+                });
+            } else {
+                throw new Error("Local processing returned no result");
+            }
+            
+        } catch (error) {
+            console.error('Error in local background removal:', error);
+            console.log('Falling back to API background removal');
+            return EditorController.removeBG(req, res);
+        }
+    }
 }
 
 module.exports = EditorController;

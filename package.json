@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "npm install"
+    "build": "echo 'Build completed'",
+    "postinstall": "python3 -m pip install --user rembg pillow || echo 'Python packages installation failed'"
   },
   "author": "Shuvodip Das and Pritom Biswas",
   "license": "ISC",
@@ -29,5 +30,8 @@
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

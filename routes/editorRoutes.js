@@ -23,6 +23,7 @@ router.get('/test-routes', (req, res) => {
         message: 'Editor routes are working',
         availableRoutes: [
             'POST /api/remove-background',
+            'POST /api/remove-background-local',
             'POST /api/remove-objects',
             'POST /api/outpaint',
             'POST /api/txt-2-img',
@@ -39,6 +40,9 @@ router.post('/remove-background', authenticateToken, upload.single('image'), Edi
 
 // Object removal for additional cleanup
 router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorController.removeObjectsNew);
+
+// Local background removal 
+router.post('/remove-background-local', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocal);
 
 // Mask creation route
 // router.post('/create-mask', authenticateToken, upload.single('image'), EditorController.createMaskOnly);

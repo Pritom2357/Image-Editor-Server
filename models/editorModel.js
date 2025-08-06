@@ -2,6 +2,10 @@ const axios = require('axios');
 const uploadToCloud = require('../utility/cloudUpload');
 const fetchQueuedImage = require('../utility/fetch-queued-image');
 
+const {spawn} = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
 class EditorModel {
 
     static OUTPAINT_URL = process.env.MODELSLAB_OUTPAINT_URL;
@@ -146,6 +150,60 @@ class EditorModel {
         } catch (error) {
             console.error('Error in remove background:', error.response?.data || error.message);
             throw error; 
+        }
+    }
+
+    static async removeBackgroundLocal({imageFile, imageName}){
+        try {
+            console.log("Starting local background removal");
+            
+            return new Promise((resolve, reject)=>{
+                const pythonProcess = spawn('python3', [path.join(__dirname, '../services/background_removal_service.py')]);
+                
+                const env = { ...process.env };
+                env.PYTHONPATH = '/opt/render/project/src/.local/lib/python3.9/site-packages';
+                
+                let outputBuffer = Buffer.alloc(0);
+                let errorOutput = '';
+
+                pythonProcess.stdin.write(imageFile);
+                pythonProcess.stdin.end();
+
+                pythonProcess.stdout.on('data', (data)=>{
+                    outputBuffer = Buffer.concat([outputBuffer, data]);
+                });
+
+                pythonProcess.stderr.on('data', (data)=>{
+                    errorOutput += data.toString();
+                });
+
+                pythonProcess.on('close', async (code)=>{
+                    if(code === 0 && outputBuffer.length > 0){
+                        try {
+                            const processedImageName = `bg-removed-${Date.now()}.png`;
+                            const uploadToCloud = require('../utility/cloudUpload.js');
+                            const imageUrl = await uploadToCloud(outputBuffer, processedImageName);
+
+                            console.log('Background removed successfully, uploaded to: ', imageUrl);
+                            resolve(imageUrl);
+                        } catch (uploadError) { 
+                            console.error('Error uploading processed image:', uploadError);
+                            reject(uploadError);
+                        }
+                    } else {
+                        console.error('Python process failed:', errorOutput);
+                        reject(new Error(`Background removal failed: ${errorOutput}`));
+                    }
+                });
+
+                pythonProcess.on('error', (error) => {
+                    console.error('Failed to start Python process:', error);
+                    reject(error);
+                });
+            });
+        } catch (error) {
+            console.error('Error in local background removal:', error);
+            throw error;
         }
     }
 
