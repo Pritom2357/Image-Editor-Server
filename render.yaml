@@ -4,11 +4,12 @@ services:
     env: node
     buildCommand: |
       npm install
-      # Install Python dependencies using Node.js environment
-      python3 -m pip install --user rembg pillow
+      poetry init --no-interaction --name bg-removal --version 1.0.0
+      poetry add rembg pillow
+      poetry install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PYTHON_PATH
-        value: /opt/render/project/src/.local/bin
+      - key: POETRY_VENV_IN_PROJECT
+        value: "true"

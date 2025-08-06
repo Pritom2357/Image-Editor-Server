@@ -158,10 +158,7 @@ class EditorModel {
             console.log("Starting local background removal");
             
             return new Promise((resolve, reject)=>{
-                const pythonProcess = spawn('python3', [path.join(__dirname, '../services/background_removal_service.py')]);
-                
-                const env = { ...process.env };
-                env.PYTHONPATH = '/opt/render/project/src/.local/lib/python3.9/site-packages';
+                const pythonProcess = spawn('poetry', ['run', 'python', path.join(__dirname, '../services/background_removal_service.py')]);
                 
                 let outputBuffer = Buffer.alloc(0);
                 let errorOutput = '';
@@ -178,13 +175,13 @@ class EditorModel {
                 });
 
                 pythonProcess.on('close', async (code)=>{
+                    console.log(`Python process exited with code: ${code}`);
+                    
                     if(code === 0 && outputBuffer.length > 0){
                         try {
-                            const processedImageName = `bg-removed-${Date.now()}.png`;
-                            const uploadToCloud = require('../utility/cloudUpload.js');
+                            const processedImageName = `bg-removed-local-${Date.now()}.png`;
                             const imageUrl = await uploadToCloud(outputBuffer, processedImageName);
-
-                            console.log('Background removed successfully, uploaded to: ', imageUrl);
+                            console.log('Background removed successfully, uploaded to:', imageUrl);
                             resolve(imageUrl);
                         } catch (uploadError) { 
                             console.error('Error uploading processed image:', uploadError);
@@ -192,7 +189,7 @@ class EditorModel {
                         }
                     } else {
                         console.error('Python process failed:', errorOutput);
-                        reject(new Error(`Background removal failed: ${errorOutput}`));
+                        reject(new Error(`Background removal failed (code ${code}): ${errorOutput}`));
                     }
                 });
 
@@ -200,6 +197,12 @@ class EditorModel {
                     console.error('Failed to start Python process:', error);
                     reject(error);
                 });
+                
+                // Add timeout
+                setTimeout(() => {
+                    pythonProcess.kill();
+                    reject(new Error('Python process timeout'));
+                }, 60000);
             });
         } catch (error) {
             console.error('Error in local background removal:', error);
