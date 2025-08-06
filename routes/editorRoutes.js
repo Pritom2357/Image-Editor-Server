@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const EditorController = require('../controllers/editorController');
-const authenticateToken = require('../middlewares/authenticateToken');
+const authenticateToken = require('../middleware/authenticateToken');
 
 // Configure multer
 const upload = multer({ 
@@ -11,7 +11,9 @@ const upload = multer({
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
-        } else {
+        }
+        
+        else {
             cb(new Error('Only image files are allowed!'), false);
         }
     }

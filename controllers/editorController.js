@@ -67,17 +67,25 @@ class EditorController {
                 imageName
             });
 
-            const resultURL = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
-            console.log('Outpaint Response:', resultURL);
+            const result = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
+            console.log('Outpaint Response:', result);
 
-            if (resultURL) {
+            if (result.output.length > 0) {
                 const user = req.user;                
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
-                    image: resultURL[0]
+                    image: result.output[0]
+                });
+            }
+
+            else if(result.id){
+                res.status(202).json({
+                    success: true,
+                    message: 'Outpainting in progress',
+                    id: result.id
                 });
             }
 

@@ -46,7 +46,18 @@ class EditorModel {
             track_id: null,
         });
 
-        return await EditorModel.handleModelResponse(response);
+        if(response.data.output.length === 0) {
+            return { 
+                output: [],
+                id: response.data.id
+            }
+        }
+        else{
+            return {
+                output: response.data.output,
+                id: null
+            }
+        }
     }
 
 
@@ -107,7 +118,9 @@ class EditorModel {
 
             console.log('ModelsLab createMask response:', response.data);
             return await EditorModel.handleModelResponse(response);
-        } catch (error) {
+        }
+        
+        catch (error) {
             console.error('Error in createMask:', error.response?.data || error.message);
             throw error; 
         }
@@ -203,7 +216,9 @@ class EditorModel {
                     reject(new Error('Python process timeout'));
                 }, 60000);
             });
-        } catch (error) {
+        }
+        
+        catch (error) {
             console.error('Error in local background removal:', error);
             throw error;
         }
