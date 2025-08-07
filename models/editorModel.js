@@ -314,7 +314,7 @@ class EditorModel {
         
         else if (response.data.status === 'processing') {
             const fetchURL = response.data.fetch_result;
-            const resultURL = await fetchQueuedImage(fetchURL);
+            const resultURL = await fetchQueuedImage.FetchQueuedImageByURL(fetchURL);
 
             return resultURL;
         }

@@ -1,6 +1,7 @@
 const EditorModel = require('../models/editorModel');
 const trackUsage = require('../utility/trackUsage');
 const formatServicePath = require('../utility/formatServicePath');
+const FetchQueuedImage = require('../utility/fetch-queued-image');
 
 class EditorController {
 
@@ -380,6 +381,57 @@ class EditorController {
             console.error('Error in local background removal:', error);
             console.log('Falling back to API background removal');
             return EditorController.removeBG(req, res);
+        }
+    }
+
+    static async FetchImageByID(req, res) {
+        try {
+            const { fetchID } = req.params;
+
+            if (!fetchID) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Fetch ID is required'
+                });
+            }
+
+            const result = await FetchQueuedImage.fetchedQueuedImageByID(fetchID);
+
+            if(result.data.status === 'success' && result.data.output) {
+                console.log('Image fetched successfully:', result.data.output);
+
+                res.status(200).json({
+                    success: true,
+                    image: result.data.output
+                });
+            }
+
+            else if(result.data.status === 'processing') {
+                console.log('Image is still processing, please try again later');
+
+                res.status(202).json({
+                    success: false,
+                    message: 'Image is still processing, please try again later'
+                });
+            }
+
+            else {
+                console.error('Failed to fetch image:', result.data.message);
+
+                res.status(400).json({
+                    success: false,
+                    message: 'Failed to fetch image'
+                });
+            }
+        }
+        
+        catch (error) {
+            console.error('Error fetching image by ID:', error);
+            res.status(500).json({
+                success: false,
+                message: 'An error occurred while fetching the image',
+                error: error.message
+            });
         }
     }
 }

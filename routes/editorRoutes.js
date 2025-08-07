@@ -61,9 +61,9 @@ router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
 
 // Image to Image
 router.post('/img-2-img', authenticateToken, upload.single('image'), EditorController.imageToImage);
-
 // Enhance Image
 router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
-
+// Fetch queued image by ID
+router.post('/fetch-queued-image/:fetchID', authenticateToken, EditorController.FetchImageByID);
 
 module.exports = router;
