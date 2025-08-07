@@ -1,12 +1,13 @@
 const { removeBackground } = require('@imgly/background-removal');
-const sharp = require('sharp');
 
 class BackgroundRemovalNodeService {
     static async removeBackgroundFromBuffer(imageBuffer) {
         try {
             console.log(`Processing image buffer of size: ${imageBuffer.length} bytes`);
             
-            const blob = new Blob([imageBuffer]);
+            const uint8Array = new Uint8Array(imageBuffer);
+            
+            const blob = new Blob([uint8Array], { type: 'image/jpeg' });
             
             console.log('Starting background removal...');
             const result = await removeBackground(blob);

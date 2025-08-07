@@ -33,30 +33,26 @@ router.get('/test-routes', (req, res) => {
     });
 });
 
-// New route to test rembg installation
-router.get('/test-rembg', (req, res) => {
-    const { execSync } = require('child_process');
+// Test route for Node.js background removal
+router.get('/test-node-bg-removal', async (req, res) => {
     try {
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const pythonVersion = execSync(`${pythonCmd} --version`, { encoding: 'utf8' });
+        const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
         
-        let rembgStatus = 'Not installed';
-        try {
-            execSync(`${pythonCmd} -c "import rembg; print('rembg available')"`, { encoding: 'utf8' });
-            rembgStatus = 'Installed';
-        } catch (e) {
-            rembgStatus = `Error: ${e.message}`;
-        }
+        const testBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
+        
+        console.log('Testing Node.js background removal...');
+        const result = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(testBuffer);
         
         res.json({
-            python: pythonVersion.trim(),
-            rembg: rembgStatus,
-            platform: process.platform,
-            nodeVersion: process.version
+            success: true,
+            message: 'Node.js background removal is working!',
+            testResultSize: result.length
         });
     } catch (error) {
         res.status(500).json({
-            error: error.message
+            success: false,
+            error: error.message,
+            stack: error.stack
         });
     }
 });
