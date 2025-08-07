@@ -156,29 +156,52 @@ class EditorModel {
     static async removeBackgroundLocal({imageFile, imageName}){
         try {
             console.log("Starting local background removal");
+            console.log(`Image size: ${imageFile.length} bytes, name: ${imageName}`);
             
-            return new Promise((resolve, reject)=>{
-                const pythonProcess = spawn('python3', [path.join(__dirname, '../services/background_removal_service.py')]);
+            return new Promise((resolve, reject) => {
+                const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+                console.log(`Using Python command: ${pythonCmd}`);
+                
+                const scriptPath = path.join(__dirname, '../services/background_removal_service.py');
+                console.log(`Python script path: ${scriptPath}`);
+                
+                if (!fs.existsSync(scriptPath)) {
+                    return reject(new Error(`Python script not found at: ${scriptPath}`));
+                }
+                
+                const pythonProcess = spawn(pythonCmd, [scriptPath], {
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                    maxBuffer: 1024 * 1024 * 50 
+                });
                 
                 let outputBuffer = Buffer.alloc(0);
                 let errorOutput = '';
+                let processExited = false;
 
-                pythonProcess.stdin.write(imageFile);
-                pythonProcess.stdin.end();
+                pythonProcess.stderr.on('data', (data) => {
+                    const message = data.toString();
+                    console.log(`Python stderr: ${message}`);
+                    errorOutput += message;
+                });
 
-                pythonProcess.stdout.on('data', (data)=>{
+                pythonProcess.stdout.on('data', (data) => {
+                    console.log(`Received ${data.length} bytes from Python stdout`);
                     outputBuffer = Buffer.concat([outputBuffer, data]);
                 });
 
-                pythonProcess.stderr.on('data', (data)=>{
-                    errorOutput += data.toString();
+                pythonProcess.on('error', (error) => {
+                    console.error('Failed to start Python process:', error);
+                    processExited = true;
+                    reject(error);
                 });
 
-                pythonProcess.on('close', async (code)=>{
+                pythonProcess.on('close', async (code) => {
                     console.log(`Python process exited with code: ${code}`);
+                    processExited = true;
                     
-                    if(code === 0 && outputBuffer.length > 0){
+                    if (code === 0 && outputBuffer.length > 0) {
                         try {
+                            console.log(`Received ${outputBuffer.length} bytes of processed image data`);
                             const processedImageName = `bg-removed-local-${Date.now()}.png`;
                             const imageUrl = await uploadToCloud(outputBuffer, processedImageName);
                             console.log('Background removed successfully, uploaded to:', imageUrl);
@@ -188,20 +211,33 @@ class EditorModel {
                             reject(uploadError);
                         }
                     } else {
-                        console.error('Python process failed:', errorOutput);
+                        console.error('Python process failed with code:', code);
+                        console.error('Error output:', errorOutput);
                         reject(new Error(`Background removal failed (code ${code}): ${errorOutput}`));
                     }
                 });
-
-                pythonProcess.on('error', (error) => {
-                    console.error('Failed to start Python process:', error);
-                    reject(error);
-                });
                 
-                setTimeout(() => {
-                    pythonProcess.kill();
-                    reject(new Error('Python process timeout'));
+                const timeout = setTimeout(() => {
+                    if (!processExited) {
+                        console.error('Python process timeout, killing...');
+                        pythonProcess.kill();
+                        reject(new Error('Python process timeout after 60 seconds'));
+                    }
                 }, 60000);
+
+                try {
+                    console.log(`Writing ${imageFile.length} bytes to Python stdin...`);
+                    pythonProcess.stdin.write(imageFile);
+                    console.log('Ending stdin stream...');
+                    pythonProcess.stdin.end();
+                } catch (error) {
+                    console.error('Error writing to Python stdin:', error);
+                    if (!processExited) {
+                        pythonProcess.kill();
+                        clearTimeout(timeout);
+                    }
+                    reject(error);
+                }
             });
         } catch (error) {
             console.error('Error in local background removal:', error);
