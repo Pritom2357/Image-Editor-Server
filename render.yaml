@@ -2,10 +2,6 @@ services:
   - type: web
     name: ai-image-editor-server
     env: node
-    buildCommand: |
-      npm install
-      python3 -m pip install --upgrade pip
-      python3 -m pip install --target=/opt/render/project/src/.python-packages pillow rembg
     startCommand: npm start
     envVars:
       - key: NODE_ENV

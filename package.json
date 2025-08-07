@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "echo 'Build completed'"
+    "build": "npm run install-python-deps",
+    "install-python-deps": "python3 -m pip install --upgrade pip && python3 -m pip install --target=./.python-packages pillow rembg",
+    "postinstall": "npm run install-python-deps"
   },
   "author": "Shuvodip Das and Pritom Biswas",
   "license": "ISC",
