@@ -7,13 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "npm run install-python-deps",
-    "install-python-deps": "python3 -m pip install --upgrade pip && python3 -m pip install --target=./.python-packages pillow rembg",
-    "postinstall": "npm run install-python-deps"
+    "build": "echo 'Build completed'"
   },
   "author": "Shuvodip Das and Pritom Biswas",
   "license": "ISC",
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",

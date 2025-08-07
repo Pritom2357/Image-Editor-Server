@@ -335,37 +335,12 @@ class EditorController {
                 });
             }
 
-            if (process.env.NODE_ENV === 'production') {
-                try {
-                    const { execSync } = require('child_process');
-                    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-                    console.log('Testing Python and required packages...');
-                    
-                    try {
-                        execSync(`${pythonCmd} -c "import PIL"`, { stdio: 'inherit' });
-                        console.log('PIL (Pillow) is available');
-                    } catch (error) {
-                        console.error('PIL (Pillow) is not installed:', error.message);
-                        return EditorController.removeBG(req, res);
-                    }
-                    
-                    try {
-                        execSync(`${pythonCmd} -c "import rembg"`, { stdio: 'inherit' });
-                        console.log('rembg is available');
-                    } catch (error) {
-                        console.error('rembg is not installed:', error.message);
-                        return EditorController.removeBG(req, res);
-                    }
-                } catch (error) {
-                    console.log('Python or packages not available, falling back to API');
-                    return EditorController.removeBG(req, res);
-                }
-            }
-
             const imageFile = req.file.buffer;
             const imageName = req.file.originalname;
 
-            const result = await EditorModel.removeBackgroundLocal({
+            console.log('Processing with Node.js background removal');
+
+            const result = await EditorModel.removeBackgroundLocalNode({
                 imageFile, 
                 imageName
             });
@@ -378,14 +353,16 @@ class EditorController {
                 res.status(200).json({
                     success: true,
                     image: result,
-                    message: "Background removed locally - much faster!"
+                    message: "Background removed with Node.js - fast and reliable!"
                 });
             } else {
-                throw new Error("Local processing returned no result");
+                throw new Error("Node.js processing returned no result");
             }
             
         } catch (error) {
-            console.error('Error in local background removal:', error);
+            console.error('Error in Node.js background removal:', error);
+            
+            // Fallback to API
             console.log('Falling back to API background removal');
             return EditorController.removeBG(req, res);
         }

@@ -5,6 +5,7 @@ const fetchQueuedImage = require('../utility/fetch-queued-image');
 const {spawn} = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
 
 class EditorModel {
 
@@ -241,6 +242,25 @@ class EditorModel {
             });
         } catch (error) {
             console.error('Error in local background removal:', error);
+            throw error;
+        }
+    }
+
+    static async removeBackgroundLocalNode({imageFile, imageName}) {
+        try {
+            console.log("Starting Node.js background removal");
+            console.log(`Image size: ${imageFile.length} bytes, name: ${imageName}`);
+            
+            const processedImageBuffer = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(imageFile);
+            
+            const processedImageName = `bg-removed-node-${Date.now()}.png`;
+            const imageUrl = await uploadToCloud(processedImageBuffer, processedImageName);
+            
+            console.log('Background removed successfully with Node.js, uploaded to:', imageUrl);
+            return imageUrl;
+            
+        } catch (error) {
+            console.error('Error in Node.js background removal:', error);
             throw error;
         }
     }
