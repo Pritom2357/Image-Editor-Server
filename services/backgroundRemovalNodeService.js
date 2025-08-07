@@ -1,6 +1,7 @@
 const tf = require('@tensorflow/tfjs-node');
 const bodyPix = require('@tensorflow-models/body-pix');
 const Jimp = require('jimp');
+const { createCanvas } = require('canvas');
 
 class BackgroundRemovalNodeService {
     static model = null;
@@ -57,11 +58,14 @@ class BackgroundRemovalNodeService {
             }
             
             const { width, height } = image.bitmap;
-            const imageData = new ImageData(
-                new Uint8ClampedArray(image.bitmap.data),
-                width,
-                height
-            );
+            
+            // Create Canvas ImageData equivalent for Node.js
+            const canvas = createCanvas(width, height);
+            const ctx = canvas.getContext('2d');
+            
+            // Convert Jimp image data to Canvas ImageData
+            const imageData = ctx.createImageData(width, height);
+            imageData.data.set(image.bitmap.data);
             
             console.log(`Processing segmentation for ${width}x${height} image...`);
             
@@ -101,7 +105,6 @@ class BackgroundRemovalNodeService {
                 
                 if (maskData[i] === 0) {
                     resultImage.bitmap.data[pixelIndex + 3] = 0; 
-                } else {
                 }
             }
             
@@ -129,11 +132,12 @@ class BackgroundRemovalNodeService {
             }
             
             const { width, height } = image.bitmap;
-            const imageData = new ImageData(
-                new Uint8ClampedArray(image.bitmap.data),
-                width,
-                height
-            );
+            
+            // Create Canvas ImageData for Node.js
+            const canvas = createCanvas(width, height);
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.createImageData(width, height);
+            imageData.data.set(image.bitmap.data);
             
             console.log('Processing enhanced segmentation...');
             
@@ -192,8 +196,6 @@ class BackgroundRemovalNodeService {
                     const alpha = Math.max(0, Math.min(255, edgeDistance * 255 / smoothingRadius));
                     
                     resultImage.bitmap.data[pixelIndex + 3] = Math.floor(alpha);
-                } else {
-                   
                 }
             }
         }
