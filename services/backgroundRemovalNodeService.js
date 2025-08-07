@@ -1,42 +1,38 @@
-const tf = require('@tensorflow/tfjs-node');
-const bodyPix = require('@tensorflow-models/body-pix');
-const Jimp = require('jimp');
-const { createCanvas } = require('canvas');
+const { Rembg } = require("@xixiyahaha/rembg-node");
+const sharp = require("sharp");
 
 class BackgroundRemovalNodeService {
-    static model = null;
-    static isModelLoading = false;
+    static rembg = null;
+    static isInitializing = false;
     
-    static async loadModel() {
-        if (this.model) {
-            return this.model;
+    static async initializeRembg() {
+        if (this.rembg) {
+            return this.rembg;
         }
         
-        if (this.isModelLoading) {
-            while (this.isModelLoading) {
+        if (this.isInitializing) {
+            while (this.isInitializing) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
-            return this.model;
+            return this.rembg;
         }
         
         try {
-            console.log('Loading BodyPix model...');
-            this.isModelLoading = true;
+            console.log('Initializing Rembg service...');
+            this.isInitializing = true;
             
-            this.model = await bodyPix.load({
-                architecture: 'MobileNetV1',
-                outputStride: 16,
-                multiplier: 0.75,
-                quantBytes: 2
+            this.rembg = new Rembg({
+                logging: true,
+                models: ["u2net"], 
             });
             
-            console.log('BodyPix model loaded successfully');
-            this.isModelLoading = false;
-            return this.model;
+            console.log('Rembg service initialized successfully');
+            this.isInitializing = false;
+            return this.rembg;
             
         } catch (error) {
-            this.isModelLoading = false;
-            console.error('Failed to load BodyPix model:', error);
+            this.isInitializing = false;
+            console.error('Failed to initialize Rembg service:', error);
             throw error;
         }
     }
@@ -45,125 +41,79 @@ class BackgroundRemovalNodeService {
         try {
             console.log(`Processing image buffer of size: ${imageBuffer.length} bytes`);
             
-            const model = await this.loadModel();
+            const rembgService = await this.initializeRembg();
             
-            console.log('Loading image with Jimp...');
-            const image = await Jimp.read(imageBuffer);
+            let inputImage = sharp(imageBuffer);
             
-            const maxSize = 512;
-            if (image.bitmap.width > maxSize || image.bitmap.height > maxSize) {
-                console.log(`Resizing image from ${image.bitmap.width}x${image.bitmap.height}`);
-                image.scaleToFit(maxSize, maxSize);
-                console.log(`Resized to ${image.bitmap.width}x${image.bitmap.height}`);
+            const metadata = await inputImage.metadata();
+            console.log(`Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
+            
+            const maxSize = 1024;
+            if (metadata.width > maxSize || metadata.height > maxSize) {
+                console.log(`Resizing image for optimal processing...`);
+                inputImage = inputImage.resize(maxSize, maxSize, { 
+                    fit: 'inside',
+                    withoutEnlargement: true 
+                });
             }
             
-            const { width, height } = image.bitmap;
+            inputImage = inputImage.jpeg({ quality: 95 });
             
-            // Create Canvas ImageData equivalent for Node.js
-            const canvas = createCanvas(width, height);
-            const ctx = canvas.getContext('2d');
+            console.log('Starting background removal with Rembg...');
             
-            // Convert Jimp image data to Canvas ImageData
-            const imageData = ctx.createImageData(width, height);
-            imageData.data.set(image.bitmap.data);
+            const outputImage = await rembgService.remove(inputImage);
             
-            console.log(`Processing segmentation for ${width}x${height} image...`);
-            
-            const segmentation = await model.segmentPerson(imageData, {
-                flipHorizontal: false,
-                internalResolution: 'medium',
-                segmentationThreshold: 0.7,
-                maxDetections: 10,
-                scoreThreshold: 0.2,
-                nmsRadius: 20
-            });
-            
-            console.log('Segmentation complete, creating mask...');
-            
-            const resultImage = await this.applySegmentationMask(image, segmentation);
-            
-            const resultBuffer = await resultImage.getBufferAsync(Jimp.MIME_PNG);
+            const resultBuffer = await outputImage
+                .png({ 
+                    compressionLevel: 6,
+                    quality: 90 
+                })
+                .toBuffer();
             
             console.log(`Background removal completed. Result size: ${resultBuffer.length} bytes`);
             return resultBuffer;
             
         } catch (error) {
-            console.error('Error in TensorFlow background removal:', error);
-            throw error;
-        }
-    }
-    
-    static async applySegmentationMask(originalImage, segmentation) {
-        try {
-            const { width, height } = originalImage.bitmap;
-            const maskData = segmentation.data;
+            console.error('Error in Rembg background removal:', error);
             
-            const resultImage = originalImage.clone();
-             
-            for (let i = 0; i < maskData.length; i++) {
-                const pixelIndex = i * 4;
-                
-                if (maskData[i] === 0) {
-                    resultImage.bitmap.data[pixelIndex + 3] = 0; 
-                }
-            }
-            
-            return resultImage;
-            
-        } catch (error) {
-            console.error('Error applying segmentation mask:', error);
-            throw error;
+            return this.fallbackRemoval(imageBuffer);
         }
     }
     
     static async removeBackgroundFromBufferEnhanced(imageBuffer) {
         try {
-            console.log(`Processing image buffer of size: ${imageBuffer.length} bytes with enhancement`);
+            console.log(`Processing enhanced background removal for ${imageBuffer.length} bytes`);
             
-            const model = await this.loadModel();
-            const image = await Jimp.read(imageBuffer);
+            const rembgService = await this.initializeRembg();
             
-            const originalWidth = image.bitmap.width;
-            const originalHeight = image.bitmap.height;
-            const maxSize = 512;
+            let inputImage = sharp(imageBuffer);
+            const metadata = await inputImage.metadata();
             
-            if (originalWidth > maxSize || originalHeight > maxSize) {
-                image.scaleToFit(maxSize, maxSize);
-            }
+            inputImage = await inputImage
+                .normalize() 
+                .sharpen() 
+                .jpeg({ quality: 98 });
             
-            const { width, height } = image.bitmap;
+            console.log('Starting enhanced background removal...');
             
-            // Create Canvas ImageData for Node.js
-            const canvas = createCanvas(width, height);
-            const ctx = canvas.getContext('2d');
-            const imageData = ctx.createImageData(width, height);
-            imageData.data.set(image.bitmap.data);
+            let outputImage = await rembgService.remove(inputImage);
             
-            console.log('Processing enhanced segmentation...');
+            outputImage = outputImage
+                .trim() 
+                .extend({
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10,
+                    background: { r: 0, g: 0, b: 0, alpha: 0 }
+                }) 
+                .png({ 
+                    compressionLevel: 6,
+                    quality: 95,
+                    progressive: true 
+                });
             
-            const segmentation1 = await model.segmentPerson(imageData, {
-                flipHorizontal: false,
-                internalResolution: 'high',
-                segmentationThreshold: 0.6,
-                maxDetections: 10
-            });
-            
-            const segmentation2 = await model.segmentPerson(imageData, {
-                flipHorizontal: false,
-                internalResolution: 'medium',
-                segmentationThreshold: 0.8,
-                maxDetections: 10
-            });
-            
-            const combinedMask = this.combineMasks(segmentation1.data, segmentation2.data);
-               
-            const resultImage = await this.applySmoothedMask(image, combinedMask, width, height);
-            
-            if (originalWidth > maxSize || originalHeight > maxSize) {
-                resultImage.resize(originalWidth, originalHeight);
-            }
-            
-            const resultBuffer = await resultImage.getBufferAsync(Jimp.MIME_PNG);
+            const resultBuffer = await outputImage.toBuffer();
             
             console.log(`Enhanced background removal completed. Result size: ${resultBuffer.length} bytes`);
             return resultBuffer;
@@ -174,53 +124,83 @@ class BackgroundRemovalNodeService {
         }
     }
     
-    static combineMasks(mask1, mask2) {
-        const combined = new Uint8Array(mask1.length);
-        for (let i = 0; i < mask1.length; i++) {
-            combined[i] = (mask1[i] === 1 && mask2[i] === 1) ? 1 : 0;
+    static async fallbackRemoval(imageBuffer) {
+        try {
+            console.log('Using Sharp-only fallback background removal...');
+            
+            const image = sharp(imageBuffer);
+            const metadata = await image.metadata();
+            
+            const result = await image
+                .greyscale()
+                .threshold(200) 
+                .negate() 
+                .png()
+                .toBuffer();
+            
+            console.log(`Fallback completed. Result size: ${result.length} bytes`);
+            return result;
+            
+        } catch (fallbackError) {
+            console.error('Error in fallback removal:', fallbackError);
+            throw fallbackError;
         }
-        return combined;
     }
     
-    static async applySmoothedMask(originalImage, maskData, width, height) {
-        const resultImage = originalImage.clone();
-        const smoothingRadius = 2;
-        
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const index = y * width + x;
-                const pixelIndex = index * 4;
-                
-                if (maskData[index] === 0) {
-                    const edgeDistance = this.getEdgeDistance(maskData, x, y, width, height, smoothingRadius);
-                    const alpha = Math.max(0, Math.min(255, edgeDistance * 255 / smoothingRadius));
-                    
-                    resultImage.bitmap.data[pixelIndex + 3] = Math.floor(alpha);
+    static async getStatus() {
+        try {
+            const isReady = !!this.rembg;
+            const isInitializing = this.isInitializing;
+            
+            return {
+                ready: isReady,
+                initializing: isInitializing,
+                service: 'rembg-node',
+                models: ['u2net'],
+                sharp: {
+                    version: sharp.versions.vips,
+                    platform: process.platform
                 }
-            }
+            };
+        } catch (error) {
+            return {
+                ready: false,
+                error: error.message
+            };
         }
-        
-        return resultImage;
     }
     
-    static getEdgeDistance(maskData, x, y, width, height, radius) {
-        let foregroundCount = 0;
-        let totalCount = 0;
-        
-        for (let dy = -radius; dy <= radius; dy++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-                const nx = x + dx;
-                const ny = y + dy;
+    static async loadModel() {
+        console.log('Loading Rembg model...');
+        return this.initializeRembg();
+    }
+    
+    static async removeBackgroundBatch(imageBuffers) {
+        try {
+            console.log(`Processing batch of ${imageBuffers.length} images`);
+            
+            const rembgService = await this.initializeRembg();
+            const results = [];
+            
+            for (let i = 0; i < imageBuffers.length; i++) {
+                console.log(`Processing image ${i + 1}/${imageBuffers.length}`);
                 
-                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                    const index = ny * width + nx;
-                    if (maskData[index] === 1) foregroundCount++;
-                    totalCount++;
+                try {
+                    const result = await this.removeBackgroundFromBuffer(imageBuffers[i]);
+                    results.push({ success: true, data: result, index: i });
+                } catch (error) {
+                    console.error(`Error processing image ${i + 1}:`, error);
+                    results.push({ success: false, error: error.message, index: i });
                 }
             }
+            
+            console.log(`Batch processing completed. ${results.filter(r => r.success).length}/${results.length} successful`);
+            return results;
+            
+        } catch (error) {
+            console.error('Error in batch processing:', error);
+            throw error;
         }
-        
-        return totalCount > 0 ? foregroundCount / totalCount : 0;
     }
 }
 

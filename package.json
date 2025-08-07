@@ -12,11 +12,9 @@
   "author": "Shuvodip Das and Pritom Biswas",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs-node": "^4.20.0",
-    "@tensorflow-models/body-pix": "^2.2.1",
+    "@xixiyahaha/rembg-node": "^2.2.0",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
-    "canvas": "^2.11.2",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
@@ -24,9 +22,7 @@
     "express-session": "^1.18.1",
     "google-auth-library": "^10.1.0",
     "imagekit": "^6.0.0",
-    "jimp": "^0.22.12",
     "jsonwebtoken": "^9.0.2",
-    "long": "^5.2.3",
     "multer": "^2.0.1",
     "nodemon": "^3.1.10",
     "passport": "^0.7.0",
@@ -34,7 +30,6 @@
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.1",
-    "protobufjs": "^7.4.0",
     "sharp": "^0.32.6"
   },
   "engines": {

@@ -33,7 +33,7 @@ router.get('/test-routes', (req, res) => {
     });
 });
 
-// Test route for Node.js background removal
+// Test route for Rembg background removal
 router.get('/test-node-bg-removal', async (req, res) => {
     try {
         const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
@@ -41,23 +41,23 @@ router.get('/test-node-bg-removal', async (req, res) => {
         // Create a simple test image (1x1 pixel)
         const testBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
         
-        console.log('Testing TensorFlow.js background removal...');
+        console.log('Testing Rembg background removal...');
         
-        // Test model loading first
-        await BackgroundRemovalNodeService.loadModel();
-        console.log('Model loaded successfully');
+        // Test initialization
+        await BackgroundRemovalNodeService.initializeRembg();
+        console.log('Rembg initialized successfully');
         
         // Test with a small image
         const result = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(testBuffer);
         
         res.json({
             success: true,
-            message: 'TensorFlow.js background removal is working!',
+            message: 'Rembg background removal is working!',
             testResultSize: result.length,
-            modelLoaded: true
+            serviceReady: true
         });
     } catch (error) {
-        console.error('TensorFlow test failed:', error);
+        console.error('Rembg test failed:', error);
         res.status(500).json({
             success: false,
             error: error.message,
@@ -94,26 +94,14 @@ router.post('/img-2-img', authenticateToken, upload.single('image'), EditorContr
 // Enhance Image
 router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
 
-// TensorFlow status check
-router.get('/tensorflow-status', async (req, res) => {
+// Rembg service status check
+router.get('/rembg-status', async (req, res) => {
     try {
         const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
-        
-        // Check if model is loaded
-        const modelStatus = BackgroundRemovalNodeService.model ? 'loaded' : 'not loaded';
-        
-        // Check TensorFlow backend
-        const tfVersion = require('@tensorflow/tfjs-node').version_core;
+        const status = await BackgroundRemovalNodeService.getStatus();
         
         res.json({
-            tensorflow: {
-                version: tfVersion,
-                backend: 'node',
-                modelStatus: modelStatus
-            },
-            bodypix: {
-                available: true
-            },
+            rembg: status,
             system: {
                 platform: process.platform,
                 nodeVersion: process.version,
@@ -123,7 +111,7 @@ router.get('/tensorflow-status', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             error: error.message,
-            tensorflow: 'failed to initialize'
+            rembg: 'failed to get status'
         });
     }
 });
