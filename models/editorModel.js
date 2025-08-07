@@ -248,20 +248,31 @@ class EditorModel {
 
     static async removeBackgroundLocalNode({imageFile, imageName}) {
         try {
-            console.log("Starting Node.js background removal");
+            console.log("Starting TensorFlow.js background removal");
             console.log(`Image size: ${imageFile.length} bytes, name: ${imageName}`);
             
-            const processedImageBuffer = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(imageFile);
+            const processedImageBuffer = await BackgroundRemovalNodeService.removeBackgroundFromBufferEnhanced(imageFile);
             
-            const processedImageName = `bg-removed-node-${Date.now()}.png`;
+            const processedImageName = `bg-removed-tensorflow-${Date.now()}.png`;
             const imageUrl = await uploadToCloud(processedImageBuffer, processedImageName);
             
-            console.log('Background removed successfully with Node.js, uploaded to:', imageUrl);
+            console.log('Background removed successfully with TensorFlow.js, uploaded to:', imageUrl);
             return imageUrl;
             
         } catch (error) {
-            console.error('Error in Node.js background removal:', error);
-            throw error;
+            console.error('Error in TensorFlow.js background removal:', error);
+            
+            try {
+                console.log('Trying basic TensorFlow background removal...');
+                const processedImageBuffer = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(imageFile);
+                const processedImageName = `bg-removed-tensorflow-basic-${Date.now()}.png`;
+                const imageUrl = await uploadToCloud(processedImageBuffer, processedImageName);
+                console.log('Basic background removal successful');
+                return imageUrl;
+            } catch (basicError) {
+                console.error('Basic background removal also failed:', basicError);
+                throw error; 
+            }
         }
     }
 
