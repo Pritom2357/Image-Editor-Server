@@ -338,10 +338,26 @@ class EditorController {
             if (process.env.NODE_ENV === 'production') {
                 try {
                     const { execSync } = require('child_process');
-                    execSync('python3 --version', { stdio: 'ignore' });
-                    execSync('python3 -c "import rembg"', { stdio: 'ignore' });
+                    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+                    console.log('Testing Python and required packages...');
+                    
+                    try {
+                        execSync(`${pythonCmd} -c "import PIL"`, { stdio: 'inherit' });
+                        console.log('PIL (Pillow) is available');
+                    } catch (error) {
+                        console.error('PIL (Pillow) is not installed:', error.message);
+                        return EditorController.removeBG(req, res);
+                    }
+                    
+                    try {
+                        execSync(`${pythonCmd} -c "import rembg"`, { stdio: 'inherit' });
+                        console.log('rembg is available');
+                    } catch (error) {
+                        console.error('rembg is not installed:', error.message);
+                        return EditorController.removeBG(req, res);
+                    }
                 } catch (error) {
-                    console.log('Python or rembg not available, falling back to API');
+                    console.log('Python or packages not available, falling back to API');
                     return EditorController.removeBG(req, res);
                 }
             }
