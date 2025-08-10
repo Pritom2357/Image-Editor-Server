@@ -245,7 +245,7 @@ class EditorModel {
             samples: samples || 1,
             width: width || 512,
             height: height || 512,
-            safety_checker: safety_checker || false,
+            safety_checker: true,
             base64: false,
             strength: strength || 0.5,
             seed: null,
