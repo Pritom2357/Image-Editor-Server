@@ -39,18 +39,18 @@ async function testConnection() {
   }
 }
 
-async function query(text, params = []) {
-  const start = Date.now();
-  try {
-    const result = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log(`⌛ Query executed in ${duration}ms`);
-    return result;
-  } catch (err) {
-    console.error('❌ Query error:', err.message);
-    throw err;
-  }
-}
+// async function query(text, params = []) {
+//   const start = Date.now();
+//   try {
+//     const result = await pool.query(text, params);
+//     const duration = Date.now() - start;
+//     console.log(`⌛ Query executed in ${duration}ms`);
+//     return result;
+//   } catch (err) {
+//     console.error('❌ Query error:', err.message);
+//     throw err;
+//   }
+// }
 
 async function getClient() {
   return await pool.connect();

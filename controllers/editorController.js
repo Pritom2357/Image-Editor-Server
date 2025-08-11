@@ -77,7 +77,9 @@ class EditorController {
 
             const result = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
             
-            if(result.safe !== true) {
+            if(result.safe === false) {
+                console.log(result);
+                
                 return res.status(400).json({
                     success: false,
                     message: result.error || 'Image is not safe'

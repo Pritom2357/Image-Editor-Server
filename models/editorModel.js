@@ -32,13 +32,13 @@ class EditorModel {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
-        if(await isSafeImage(imageUrl) !== true) {
+        if(await isSafeImage(imageUrl) === false) {
             return {
                 safe: false,
                 error: 'Image is not safe'
             };
         }
-        else if(await isSafePrompt(prompt) !== true) {
+        else if(await isSafePrompt(prompt) === false) {
             return {
                 safe: false,
                 error: 'Prompt is not safe'
