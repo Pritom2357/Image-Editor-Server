@@ -76,7 +76,6 @@ testConnection();
 
 module.exports = {
   pool,
-  query,
   getClient,
   testConnection,
   closePool
