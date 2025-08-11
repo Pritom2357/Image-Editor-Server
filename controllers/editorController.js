@@ -24,6 +24,7 @@ class EditorController {
             if(output.safe !== true) {
                 return res.status(400).json({
                     success: false,
+                    safe: output.safe,
                     message: output.error || 'Image is not safe'
                 });
             }
@@ -82,6 +83,7 @@ class EditorController {
                 
                 return res.status(400).json({
                     success: false,
+                    safe: result.safe,
                     message: result.error || 'Image is not safe'
                 });
             }
@@ -132,6 +134,14 @@ class EditorController {
 
             const output = await EditorModel.textToImage({ prompt, negative_prompt, samples, width, height, safety_checker, enhance_prompt });
             console.log('Text to Image Response:', output);
+
+            if(output.safe === false) {
+                return res.status(400).json({
+                    success: false,
+                    safe: output.safe,
+                    message: output.error || 'Image is not safe'
+                });
+            }
 
             if (output) {
                 const user = req.user;                
@@ -184,6 +194,7 @@ class EditorController {
             if(output.safe === false) {
                 return res.status(400).json({
                     success: false,
+                    safe: output.safe,
                     message: output.error || 'Image is not safe'
                 });
             }
