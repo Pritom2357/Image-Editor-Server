@@ -2,7 +2,8 @@ const axios = require('axios');
 const uploadToCloud = require('../utility/cloudUpload');
 const fetchQueuedImage = require('../utility/fetch-queued-image');
 
-const { spawn } = require('child_process');
+const {spawn} = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 class EditorModel {
@@ -36,22 +37,22 @@ class EditorModel {
             image: imageUrl,
             width: width || 1280, // width of the output image
             height: height || 1280, // height of the output image
-            overlap_width: overlap_width || 10,
-            num_inference_steps: 30,
-            guidance_scale: guidance_scale || 7.5,
-            seed: -1,
+            overlap_width: overlap_width || 10, 
+            num_inference_steps: 30, 
+            guidance_scale: guidance_scale || 8.0, 
+            seed: -1, 
             base64: false,
             webhook: null,
             track_id: null,
         });
 
-        if (response.data.output.length === 0) {
-            return {
+        if(response.data.output.length === 0) {
+            return { 
                 output: [],
                 id: response.data.id
             }
         }
-        else {
+        else{
             return {
                 output: response.data.output,
                 id: null
@@ -118,19 +119,19 @@ class EditorModel {
             console.log('ModelsLab createMask response:', response.data);
             return await EditorModel.handleModelResponse(response);
         }
-
+        
         catch (error) {
             console.error('Error in createMask:', error.response?.data || error.message);
-            throw error;
+            throw error; 
         }
     }
 
     /*
      *Remove background using existing mask
     */
+    
 
-
-    static async removeBG({ imageFile, imageName, alpha_matting = true, post_process_mask = true }) {
+    static async removeBG({imageFile, imageName, alpha_matting = true, post_process_mask = true}){
         try {
             console.log("Starting Background removal");
             console.log(`BG removal endpoint: ${process.env.MODELSLAB_REMOVEBG_MASK_URL}`);
@@ -140,62 +141,62 @@ class EditorModel {
 
             const response = await axios.post(process.env.MODELSLAB_REMOVEBG_MASK_URL, {
                 key: EditorModel.MODELSLAB_API_KEY,
-                image: imageUrl,
+                image: imageUrl,  
                 post_process_mask: post_process_mask,
                 only_mask: false,  // Returns processed image, not just mask
                 alpha_matting: alpha_matting,
                 inverse_mask: false,  // Normal background removal
-                seed: null,
+                seed: null,  
                 base64: false,
                 alpha_matting_foreground_threshold: 240,
                 alpha_matting_background_threshold: 20,
                 alpha_matting_erode_size: 5,
                 webhook: null,
-                track_id: null
+                track_id: null  
             });
 
             const result = await response.data;
             console.log("Model slab API response: " + result);
-
-            return await EditorModel.handleModelResponse(response);
-
+            
+            return await EditorModel.handleModelResponse(response);                  
+            
         } catch (error) {
             console.error('Error in remove background:', error.response?.data || error.message);
-            throw error;
+            throw error; 
         }
     }
 
-    static async removeBackgroundLocal({ imageFile, imageName }) {
+    static async removeBackgroundLocal({imageFile, imageName}){
         try {
             console.log("Starting local background removal");
-
-            return new Promise((resolve, reject) => {
+            
+            return new Promise((resolve, reject)=>{
                 const pythonProcess = spawn('python3', [path.join(__dirname, '../services/background_removal_service.py')]);
-
+                
                 let outputBuffer = Buffer.alloc(0);
                 let errorOutput = '';
 
                 pythonProcess.stdin.write(imageFile);
                 pythonProcess.stdin.end();
 
-                pythonProcess.stdout.on('data', (data) => {
+                pythonProcess.stdout.on('data', (data)=>{
                     outputBuffer = Buffer.concat([outputBuffer, data]);
                 });
 
-                pythonProcess.stderr.on('data', (data) => {
+                pythonProcess.stderr.on('data', (data)=>{
                     errorOutput += data.toString();
                 });
 
-                pythonProcess.on('close', async (code) => {
+                pythonProcess.on('close', async (code)=>{
                     console.log(`Python process exited with code: ${code}`);
-
-                    if (code === 0 && outputBuffer.length > 0) {
+                    
+                    if(code === 0 && outputBuffer.length > 0){
                         try {
                             const processedImageName = `bg-removed-local-${Date.now()}.png`;
                             const imageUrl = await uploadToCloud(outputBuffer, processedImageName);
                             console.log('Background removed successfully, uploaded to:', imageUrl);
                             resolve(imageUrl);
-                        } catch (uploadError) {
+                        } catch (uploadError) { 
                             console.error('Error uploading processed image:', uploadError);
                             reject(uploadError);
                         }
@@ -209,14 +210,14 @@ class EditorModel {
                     console.error('Failed to start Python process:', error);
                     reject(error);
                 });
-
+                
                 setTimeout(() => {
                     pythonProcess.kill();
                     reject(new Error('Python process timeout'));
                 }, 60000);
             });
         }
-
+        
         catch (error) {
             console.error('Error in local background removal:', error);
             throw error;
@@ -236,31 +237,21 @@ class EditorModel {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
-        const response = await axios.post("https://modelslab.com/api/v6/images/img2img", {
+        const response = await axios.post(EditorModel.IMG_2_IMG_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
-            model_id: "flux",
             prompt,
             negative_prompt,
             init_image: imageUrl,
-            samples: samples ? samples.toString() : "1",
-            num_inference_steps: "31",
-            safety_checker: "yes",
-            safety_checker_type: "sensitive_content_text",
-            enhance_prompt: false,
-            guidance_scale: 7.5,
-            strength: strength || 1,
-            scheduler: "DPMSolverMultistepScheduler",
-            algorithm_type: "",
-            seed: "",
-            lora_model: "more_details",
-            tomesd: "",
-            use_karras_sigmas: "yes",
-            vae: null,
-            lora_strength: null,
-            base64: true,
-            embeddings_model: null,
+            samples: samples || 1,
+            width: width || 512,
+            height: height || 512,
+            safety_checker: true,
+            base64: false,
+            strength: strength || 0.5,
+            seed: null,
             webhook: null,
-            track_id: null
+            track_id: null,
+            enhance_prompt: false
         });
 
         return await EditorModel.handleModelResponse(response);
@@ -320,19 +311,19 @@ class EditorModel {
         if (response.data.status === 'success') {
             return response.data.output;
         }
-
+        
         else if (response.data.status === 'processing') {
             const fetchURL = response.data.fetch_result;
             const resultURL = await fetchQueuedImage.FetchQueuedImageByURL(fetchURL);
 
             return resultURL;
         }
-
+        
         else if (response.data.status === 'error') {
             console.error('Error from model:', response.data.message);
             throw new Error(response.data.error || 'API Model error');
         }
-
+        
         else {
             throw new Error('Unknown response status from text-to-image model');
         }
