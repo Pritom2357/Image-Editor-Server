@@ -54,7 +54,7 @@ class FetchQueuedImage {
     static async fetchedQueuedImageByID(fetchID) {
         try {
             const response = await axios.post(`${FetchQueuedImage.FETCH_IMAGE_BY_ID_URL}/${fetchID}`, {
-                key: FetchQueuedImage.API_KEY,
+                key: FetchQueuedImage.API_KEY
             })
 
             return response;
