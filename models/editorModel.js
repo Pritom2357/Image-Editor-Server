@@ -236,28 +236,31 @@ class EditorModel {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
-        const response = await axios.post(EditorModel.IMG_2_IMG_URL, {
+        const response = await axios.post("https://modelslab.com/api/v6/images/img2img", {
             key: EditorModel.MODELSLAB_API_KEY,
+            model_id: "flux",
             prompt,
             negative_prompt,
-            model_id: "realistic-vision-51",
-            num_inference_steps: 31,
             init_image: imageUrl,
-            samples: samples || 1,
-            scheduler: "UniPCMultistepScheduler",
-            enhance_prompt: "yes",
-            // width: width || 512,
-            // height: height || 512,
-            lora_model: null,
-            tomesd: "yes",
+            samples: samples ? samples.toString() : "1",
+            num_inference_steps: "31",
+            safety_checker: "yes",
+            safety_checker_type: "sensitive_content_text",
+            enhance_prompt: false,
+            guidance_scale: 7.5,
+            strength: strength || 1,
+            scheduler: "DPMSolverMultistepScheduler",
+            algorithm_type: "",
+            seed: "",
+            lora_model: "more_details",
+            tomesd: "",
             use_karras_sigmas: "yes",
             vae: null,
             lora_strength: null,
-            safety_checker: true,
-            strength: strength || 0.5,
-            seed: null,
+            base64: true,
+            embeddings_model: null,
             webhook: null,
-            track_id: null,
+            track_id: null
         });
 
         return await EditorModel.handleModelResponse(response);
