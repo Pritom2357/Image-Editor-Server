@@ -262,7 +262,7 @@ class EditorModel {
 
         console.log('Uploaded image URL:', imageUrl);
 
-        if(await isSafeImage(imageUrl) !== true) {
+        if(await isSafeImage(imageUrl) === false) {
             return {
                 safe: false,
                 error: 'Image is not safe'

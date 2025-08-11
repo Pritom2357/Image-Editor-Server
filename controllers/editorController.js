@@ -172,10 +172,14 @@ class EditorController {
         try {
             const { prompt, negative_prompt, samples, width, height, safety_checker, strength } = req.body;
 
+            console.log('Image to Image Request:', req.body);
+
             const imageFile = req.file.buffer;
             const imageName = req.file.originalname;
 
             const output = await EditorModel.imageToImage({ imageFile, imageName, prompt, negative_prompt, samples, width, height, safety_checker, strength });
+
+            console.log('Image to Image Response:', output);
 
             if(output.safe !== true) {
                 return res.status(400).json({
