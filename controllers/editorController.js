@@ -21,6 +21,13 @@ class EditorController {
 
             const output = await EditorModel.enhanceImage({ imageFile, imageName, faceEnhance, scale });
 
+            if(output.safe !== true) {
+                return res.status(400).json({
+                    success: false,
+                    message: output.error || 'Image is not safe'
+                });
+            }
+
             if (output) {
                 const user = req.user;                
                 const service = formatServicePath(req.path);
@@ -69,7 +76,13 @@ class EditorController {
             });
 
             const result = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
-            console.log('Outpaint Response:', result);
+            
+            if(result.safe !== true) {
+                return res.status(400).json({
+                    success: false,
+                    message: result.error || 'Image is not safe'
+                });
+            }
 
             if (result.output.length > 0) {
                 const user = req.user;                
@@ -161,6 +174,13 @@ class EditorController {
             const imageName = req.file.originalname;
 
             const output = await EditorModel.imageToImage({ imageFile, imageName, prompt, negative_prompt, samples, width, height, safety_checker, strength });
+
+            if(output.safe !== true) {
+                return res.status(400).json({
+                    success: false,
+                    message: output.error || 'Image is not safe'
+                });
+            }
 
             if (output) {
                 const user = req.user;                

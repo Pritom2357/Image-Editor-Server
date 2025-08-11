@@ -5,6 +5,8 @@ const fetchQueuedImage = require('../utility/fetch-queued-image');
 const {spawn} = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { isSafeImage } = require('../utility/NSFWFlagUtils/FlagImage');
+const { isSafePrompt } = require('../utility/NSFWFlagUtils/FlagPrompt');
 
 class EditorModel {
 
@@ -29,6 +31,19 @@ class EditorModel {
     static async outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale }) {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
+
+        if(await isSafeImage(imageUrl) !== true) {
+            return {
+                safe: false,
+                error: 'Image is not safe'
+            };
+        }
+        else if(await isSafePrompt(prompt) !== true) {
+            return {
+                safe: false,
+                error: 'Prompt is not safe'
+            };
+        }
 
         const response = await axios.post(EditorModel.OUTPAINT_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
@@ -66,6 +81,14 @@ class EditorModel {
     */
 
     static async textToImage({ prompt, negative_prompt, samples, width, height, safety_checker, enhance_prompt }) {
+
+        if(await isSafePrompt(prompt) !== true) {
+            return {
+                safe: false,
+                error: 'Prompt is not safe'
+            };
+        }
+
         const response = await axios.post(EditorModel.TXT_2_IMG_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
             prompt,
@@ -237,6 +260,17 @@ class EditorModel {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
+        console.log('Uploaded image URL:', imageUrl);
+
+        if(await isSafeImage(imageUrl) !== true) {
+            return {
+                safe: false,
+                error: 'Image is not safe'
+            };
+        }
+
+        console.log('Image is safe, proceeding with transformation.');
+
         const response = await axios.post(EditorModel.IMG_2_IMG_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
             prompt,
@@ -251,8 +285,10 @@ class EditorModel {
             seed: null,
             webhook: null,
             track_id: null,
-            enhance_prompt: false
+            enhance_prompt: true
         });
+
+        console.log('Image transformation response:', response.data);
 
         return await EditorModel.handleModelResponse(response);
     }
@@ -268,6 +304,13 @@ class EditorModel {
 
     static async enhanceImage({ imageFile, imageName, faceEnhance, scale }) {
         const imageUrl = await uploadToCloud(imageFile, imageName);
+
+        if(await isSafeImage(imageUrl) !== true) {
+            return {
+                safe: false,
+                error: 'Image is not safe'
+            };
+        }
 
         const response = await axios.post(EditorModel.ENHANCE_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
@@ -307,12 +350,16 @@ class EditorModel {
 
     // Handles API responses for all model endpoints
     static async handleModelResponse(response) {
+        
 
         if (response.data.status === 'success') {
+            console.log('Image transformation successful:', response.data.output);
             return response.data.output;
         }
         
         else if (response.data.status === 'processing') {
+            console.log('Image transformation is still processing...');
+
             const fetchURL = response.data.fetch_result;
             const resultURL = await fetchQueuedImage.FetchQueuedImageByURL(fetchURL);
 
