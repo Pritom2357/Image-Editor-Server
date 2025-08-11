@@ -181,7 +181,7 @@ class EditorController {
 
             console.log('Image to Image Response:', output);
 
-            if(output.safe !== true) {
+            if(output.safe === false) {
                 return res.status(400).json({
                     success: false,
                     message: output.error || 'Image is not safe'
