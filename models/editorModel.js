@@ -18,7 +18,7 @@ class EditorModel {
     static IMG_2_IMG_URL = process.env.MODELSLAB_IMG_2_IMG_URL;
     static MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY;
     static ENHANCE_URL = process.env.MODELSLAB_ENHANCE_URL;
-    static REMBG_HF_URL = 'https://pritombiswas9999-rembg-server.hf.space/api/remove-background-bytes';
+    static REMBG_HF_URL = 'https://pritombiswas9999-rembg-server.hf.space/api/remove-background-hq-bytes'; // Changed to HQ endpoint
 
     static NSFW_MESSAGE = 'Please Follow Our NSFW Guidelines and Don\'t Upload or Try To Generate Inappropriate Content';
 
@@ -194,34 +194,31 @@ class EditorModel {
 
     static async removeBackgroundLocal({imageFile, imageName}){
         try {
-            console.log("Starting HuggingFace background removal");
+            console.log("Starting HuggingFace HIGH QUALITY background removal");
             console.log(`Using HF endpoint: ${EditorModel.REMBG_HF_URL}`);
 
-            // Create FormData for the API call
             const FormData = require('form-data');
             const form = new FormData();
             
-            // Append the image buffer as a file
             form.append('image', imageFile, {
                 filename: imageName,
-                contentType: 'image/jpeg' // or detect from imageName
+                contentType: 'image/jpeg'
             });
 
-            // Make API call to your HuggingFace endpoint
             const response = await axios.post(EditorModel.REMBG_HF_URL, form, {
                 headers: {
                     ...form.getHeaders(),
                 },
-                responseType: 'arraybuffer', // Important: get binary data
-                timeout: 60000 // 60 second timeout
+                responseType: 'arraybuffer',
+                timeout: 120000 // Increased timeout for HQ processing
             });
 
             if (response.status === 200 && response.data) {
-                // Upload the processed image buffer to your cloud storage
-                const processedImageName = `bg-removed-hf-${Date.now()}.png`;
+                const processedImageName = `bg-removed-hq-${Date.now()}.png`;
                 const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
                 
-                console.log('Background removed successfully with HF, uploaded to:', imageUrl);
+                console.log('HIGH QUALITY background removed, uploaded to:', imageUrl);
+                console.log('Processing time:', response.headers['x-processing-time']);
                 return imageUrl;
             } else {
                 throw new Error(`HuggingFace API returned status ${response.status}`);
@@ -229,54 +226,7 @@ class EditorModel {
         }
         
         catch (error) {
-            console.error('Error in HuggingFace background removal:', error.message);
-            
-            // Log more details for debugging
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data?.toString?.() || 'Binary data');
-            }
-            
-            throw error;
-        }
-    }
-
-    
-    static async removeBackgroundLocalBase64({imageFile, imageName}){
-        try {
-            console.log("Starting HuggingFace background removal (base64)");
-            
-            const FormData = require('form-data');
-            const form = new FormData();
-            form.append('image', imageFile, {
-                filename: imageName,
-                contentType: 'image/jpeg'
-            });
-
-            const response = await axios.post('https://pritombiswas9999-rembg-server.hf.space/api/remove-background', form, {
-                headers: {
-                    ...form.getHeaders(),
-                },
-                timeout: 60000
-            });
-
-            if (response.data.success && response.data.image_base64) {
-                // Convert base64 to buffer
-                const imageBuffer = Buffer.from(response.data.image_base64, 'base64');
-                
-                // Upload to cloud
-                const processedImageName = `bg-removed-hf-b64-${Date.now()}.png`;
-                const imageUrl = await uploadToCloud(imageBuffer, processedImageName);
-                
-                console.log(`Background removed in ${response.data.processing_time}s, uploaded to:`, imageUrl);
-                return imageUrl;
-            } else {
-                throw new Error('HuggingFace API did not return success');
-            }
-        }
-        
-        catch (error) {
-            console.error('Error in HuggingFace background removal (base64):', error.message);
+            console.error('Error in HuggingFace HQ background removal:', error.message);
             throw error;
         }
     }
