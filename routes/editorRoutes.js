@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const EditorController = require('../controllers/editorController');
-const authenticateToken = require('../middlewares/authenticateToken');
+const authenticateToken = require('../middleware/authenticateToken');
 
 // Configure multer
 const upload = multer({ 
@@ -11,7 +11,9 @@ const upload = multer({
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
-        } else {
+        }
+        
+        else {
             cb(new Error('Only image files are allowed!'), false);
         }
     }
@@ -90,30 +92,9 @@ router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
 
 // Image to Image
 router.post('/img-2-img', authenticateToken, upload.single('image'), EditorController.imageToImage);
-
 // Enhance Image
 router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
-
-// Rembg service status check
-router.get('/rembg-status', async (req, res) => {
-    try {
-        const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
-        const status = await BackgroundRemovalNodeService.getStatus();
-        
-        res.json({
-            rembg: status,
-            system: {
-                platform: process.platform,
-                nodeVersion: process.version,
-                memory: process.memoryUsage()
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            error: error.message,
-            rembg: 'failed to get status'
-        });
-    }
-});
+// Fetch queued image by ID
+router.post('/fetch-queued-image/:fetchID', authenticateToken, EditorController.FetchImageByID);
 
 module.exports = router;

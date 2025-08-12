@@ -5,7 +5,8 @@ const fetchQueuedImage = require('../utility/fetch-queued-image');
 const {spawn} = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
+const { isSafeImage } = require('../utility/NSFWFlagUtils/FlagImage');
+const { isSafePrompt } = require('../utility/NSFWFlagUtils/FlagPrompt');
 
 class EditorModel {
 
@@ -31,6 +32,19 @@ class EditorModel {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
+        if(await isSafeImage(imageUrl) === false) {
+            return {
+                safe: false,
+                error: 'Image is not safe'
+            };
+        }
+        else if(await isSafePrompt(prompt) === false) {
+            return {
+                safe: false,
+                error: 'Prompt is not safe'
+            };
+        }
+
         const response = await axios.post(EditorModel.OUTPAINT_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
             prompt,
@@ -39,7 +53,7 @@ class EditorModel {
             width: width || 1280, // width of the output image
             height: height || 1280, // height of the output image
             overlap_width: overlap_width || 10, 
-            num_inference_steps: 10, 
+            num_inference_steps: 30, 
             guidance_scale: guidance_scale || 8.0, 
             seed: -1, 
             base64: false,
@@ -47,7 +61,18 @@ class EditorModel {
             track_id: null,
         });
 
-        return await EditorModel.handleModelResponse(response);
+        if(response.data.output.length === 0) {
+            return { 
+                output: [],
+                id: response.data.id
+            }
+        }
+        else{
+            return {
+                output: response.data.output,
+                id: null
+            }
+        }
     }
 
 
@@ -56,6 +81,14 @@ class EditorModel {
     */
 
     static async textToImage({ prompt, negative_prompt, samples, width, height, safety_checker, enhance_prompt }) {
+
+        if(await isSafePrompt(prompt) !== true) {
+            return {
+                safe: false,
+                error: 'Prompt is not safe'
+            };
+        }
+
         const response = await axios.post(EditorModel.TXT_2_IMG_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
             prompt,
@@ -63,7 +96,7 @@ class EditorModel {
             samples: samples || 1,
             width: width || 512,
             height: height || 512,
-            safety_checker: safety_checker || false,
+            safety_checker: true,
             base64: false,
             seed: null,
             webhook: null,
@@ -108,7 +141,9 @@ class EditorModel {
 
             console.log('ModelsLab createMask response:', response.data);
             return await EditorModel.handleModelResponse(response);
-        } catch (error) {
+        }
+        
+        catch (error) {
             console.error('Error in createMask:', error.response?.data || error.message);
             throw error; 
         }
@@ -157,52 +192,29 @@ class EditorModel {
     static async removeBackgroundLocal({imageFile, imageName}){
         try {
             console.log("Starting local background removal");
-            console.log(`Image size: ${imageFile.length} bytes, name: ${imageName}`);
             
-            return new Promise((resolve, reject) => {
-                const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-                console.log(`Using Python command: ${pythonCmd}`);
-                
-                const scriptPath = path.join(__dirname, '../services/background_removal_service.py');
-                console.log(`Python script path: ${scriptPath}`);
-                
-                if (!fs.existsSync(scriptPath)) {
-                    return reject(new Error(`Python script not found at: ${scriptPath}`));
-                }
-                
-                const pythonProcess = spawn(pythonCmd, [scriptPath], {
-                    stdio: ['pipe', 'pipe', 'pipe'],
-                    maxBuffer: 1024 * 1024 * 50 
-                });
+            return new Promise((resolve, reject)=>{
+                const pythonProcess = spawn('python3', [path.join(__dirname, '../services/background_removal_service.py')]);
                 
                 let outputBuffer = Buffer.alloc(0);
                 let errorOutput = '';
-                let processExited = false;
 
-                pythonProcess.stderr.on('data', (data) => {
-                    const message = data.toString();
-                    console.log(`Python stderr: ${message}`);
-                    errorOutput += message;
-                });
+                pythonProcess.stdin.write(imageFile);
+                pythonProcess.stdin.end();
 
-                pythonProcess.stdout.on('data', (data) => {
-                    console.log(`Received ${data.length} bytes from Python stdout`);
+                pythonProcess.stdout.on('data', (data)=>{
                     outputBuffer = Buffer.concat([outputBuffer, data]);
                 });
 
-                pythonProcess.on('error', (error) => {
-                    console.error('Failed to start Python process:', error);
-                    processExited = true;
-                    reject(error);
+                pythonProcess.stderr.on('data', (data)=>{
+                    errorOutput += data.toString();
                 });
 
-                pythonProcess.on('close', async (code) => {
+                pythonProcess.on('close', async (code)=>{
                     console.log(`Python process exited with code: ${code}`);
-                    processExited = true;
                     
-                    if (code === 0 && outputBuffer.length > 0) {
+                    if(code === 0 && outputBuffer.length > 0){
                         try {
-                            console.log(`Received ${outputBuffer.length} bytes of processed image data`);
                             const processedImageName = `bg-removed-local-${Date.now()}.png`;
                             const imageUrl = await uploadToCloud(outputBuffer, processedImageName);
                             console.log('Background removed successfully, uploaded to:', imageUrl);
@@ -212,62 +224,25 @@ class EditorModel {
                             reject(uploadError);
                         }
                     } else {
-                        console.error('Python process failed with code:', code);
-                        console.error('Error output:', errorOutput);
+                        console.error('Python process failed:', errorOutput);
                         reject(new Error(`Background removal failed (code ${code}): ${errorOutput}`));
                     }
                 });
-                
-                const timeout = setTimeout(() => {
-                    if (!processExited) {
-                        console.error('Python process timeout, killing...');
-                        pythonProcess.kill();
-                        reject(new Error('Python process timeout after 60 seconds'));
-                    }
-                }, 60000);
 
-                try {
-                    console.log(`Writing ${imageFile.length} bytes to Python stdin...`);
-                    pythonProcess.stdin.write(imageFile);
-                    console.log('Ending stdin stream...');
-                    pythonProcess.stdin.end();
-                } catch (error) {
-                    console.error('Error writing to Python stdin:', error);
-                    if (!processExited) {
-                        pythonProcess.kill();
-                        clearTimeout(timeout);
-                    }
+                pythonProcess.on('error', (error) => {
+                    console.error('Failed to start Python process:', error);
                     reject(error);
-                }
+                });
+                
+                setTimeout(() => {
+                    pythonProcess.kill();
+                    reject(new Error('Python process timeout'));
+                }, 60000);
             });
-        } catch (error) {
-            console.error('Error in local background removal:', error);
-            throw error;
         }
-    }
-
-    static async removeBackgroundLocalNode({imageFile, imageName}) {
-        try {
-            console.log("Starting Rembg background removal");
-            console.log(`Image size: ${imageFile.length} bytes, name: ${imageName}`);
-            
-            // Try enhanced version first
-            let processedImageBuffer;
-            try {
-                processedImageBuffer = await BackgroundRemovalNodeService.removeBackgroundFromBufferEnhanced(imageFile);
-            } catch (enhancedError) {
-                console.log('Enhanced processing failed, trying basic version...');
-                processedImageBuffer = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(imageFile);
-            }
-            
-            const processedImageName = `bg-removed-rembg-${Date.now()}.png`;
-            const imageUrl = await uploadToCloud(processedImageBuffer, processedImageName);
-            
-            console.log('Background removed successfully with Rembg, uploaded to:', imageUrl);
-            return imageUrl;
-            
-        } catch (error) {
-            console.error('Error in Rembg background removal:', error);
+        
+        catch (error) {
+            console.error('Error in local background removal:', error);
             throw error;
         }
     }
@@ -285,6 +260,17 @@ class EditorModel {
 
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
+        console.log('Uploaded image URL:', imageUrl);
+
+        if(await isSafeImage(imageUrl) === false) {
+            return {
+                safe: false,
+                error: 'Image is not safe'
+            };
+        }
+
+        console.log('Image is safe, proceeding with transformation.');
+
         const response = await axios.post(EditorModel.IMG_2_IMG_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
             prompt,
@@ -293,14 +279,16 @@ class EditorModel {
             samples: samples || 1,
             width: width || 512,
             height: height || 512,
-            safety_checker: safety_checker || false,
+            safety_checker: true,
             base64: false,
             strength: strength || 0.5,
             seed: null,
             webhook: null,
             track_id: null,
-            enhance_prompt: false
+            enhance_prompt: true
         });
+
+        console.log('Image transformation response:', response.data);
 
         return await EditorModel.handleModelResponse(response);
     }
@@ -316,6 +304,13 @@ class EditorModel {
 
     static async enhanceImage({ imageFile, imageName, faceEnhance, scale }) {
         const imageUrl = await uploadToCloud(imageFile, imageName);
+
+        if(await isSafeImage(imageUrl) !== true) {
+            return {
+                safe: false,
+                error: 'Image is not safe'
+            };
+        }
 
         const response = await axios.post(EditorModel.ENHANCE_URL, {
             key: EditorModel.MODELSLAB_API_KEY,
@@ -355,14 +350,18 @@ class EditorModel {
 
     // Handles API responses for all model endpoints
     static async handleModelResponse(response) {
+        
 
         if (response.data.status === 'success') {
+            console.log('Image transformation successful:', response.data.output);
             return response.data.output;
         }
         
         else if (response.data.status === 'processing') {
+            console.log('Image transformation is still processing...');
+
             const fetchURL = response.data.fetch_result;
-            const resultURL = await fetchQueuedImage(fetchURL);
+            const resultURL = await fetchQueuedImage.FetchQueuedImageByURL(fetchURL);
 
             return resultURL;
         }

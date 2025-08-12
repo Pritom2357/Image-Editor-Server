@@ -1,6 +1,7 @@
 const EditorModel = require('../models/editorModel');
 const trackUsage = require('../utility/trackUsage');
 const formatServicePath = require('../utility/formatServicePath');
+const FetchQueuedImage = require('../utility/fetch-queued-image');
 
 class EditorController {
 
@@ -19,6 +20,14 @@ class EditorController {
 
 
             const output = await EditorModel.enhanceImage({ imageFile, imageName, faceEnhance, scale });
+
+            if(output.safe !== true) {
+                return res.status(400).json({
+                    success: false,
+                    safe: output.safe,
+                    message: output.error || 'Image is not safe'
+                });
+            }
 
             if (output) {
                 const user = req.user;                
@@ -67,17 +76,34 @@ class EditorController {
                 imageName
             });
 
-            const resultURL = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
-            console.log('Outpaint Response:', resultURL);
+            const result = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
+            
+            if(result.safe === false) {
+                console.log(result);
+                
+                return res.status(400).json({
+                    success: false,
+                    safe: result.safe,
+                    message: result.error || 'Image is not safe'
+                });
+            }
 
-            if (resultURL) {
+            if (result.output.length > 0) {
                 const user = req.user;                
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
-                    image: resultURL[0]
+                    image: result.output[0]
+                });
+            }
+
+            else if(result.id){
+                res.status(202).json({
+                    success: true,
+                    message: 'Outpainting in progress',
+                    id: result.id
                 });
             }
 
@@ -108,6 +134,14 @@ class EditorController {
 
             const output = await EditorModel.textToImage({ prompt, negative_prompt, samples, width, height, safety_checker, enhance_prompt });
             console.log('Text to Image Response:', output);
+
+            if(output.safe === false) {
+                return res.status(400).json({
+                    success: false,
+                    safe: output.safe,
+                    message: output.error || 'Image is not safe'
+                });
+            }
 
             if (output) {
                 const user = req.user;                
@@ -148,10 +182,22 @@ class EditorController {
         try {
             const { prompt, negative_prompt, samples, width, height, safety_checker, strength } = req.body;
 
+            console.log('Image to Image Request:', req.body);
+
             const imageFile = req.file.buffer;
             const imageName = req.file.originalname;
 
             const output = await EditorModel.imageToImage({ imageFile, imageName, prompt, negative_prompt, samples, width, height, safety_checker, strength });
+
+            console.log('Image to Image Response:', output);
+
+            if(output.safe === false) {
+                return res.status(400).json({
+                    success: false,
+                    safe: output.safe,
+                    message: output.error || 'Image is not safe'
+                });
+            }
 
             if (output) {
                 const user = req.user;                
@@ -365,6 +411,57 @@ class EditorController {
             // Fallback to API
             console.log('Falling back to API background removal');
             return EditorController.removeBG(req, res);
+        }
+    }
+
+    static async FetchImageByID(req, res) {
+        try {
+            const { fetchID } = req.params;
+
+            if (!fetchID) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Fetch ID is required'
+                });
+            }
+
+            const result = await FetchQueuedImage.fetchedQueuedImageByID(fetchID);
+
+            if(result.data.status === 'success' && result.data.output) {
+                console.log('Image fetched successfully:', result.data.output);
+
+                res.status(200).json({
+                    success: true,
+                    image: result.data.output
+                });
+            }
+
+            else if(result.data.status === 'processing') {
+                console.log('Image is still processing, please try again later');
+
+                res.status(202).json({
+                    success: false,
+                    message: 'Image is still processing, please try again later'
+                });
+            }
+
+            else {
+                console.error('Failed to fetch image:', result.data.message);
+
+                res.status(400).json({
+                    success: false,
+                    message: 'Failed to fetch image'
+                });
+            }
+        }
+        
+        catch (error) {
+            console.error('Error fetching image by ID:', error);
+            res.status(500).json({
+                success: false,
+                message: 'An error occurred while fetching the image',
+                error: error.message
+            });
         }
     }
 }
