@@ -5,6 +5,8 @@ const FetchQueuedImage = require('../utility/fetch-queued-image');
 
 class EditorController {
 
+    static NSFW_MESSAGE = 'Please Follow Our NSFW Guidelines and Don\'t Upload or Try To Generate Inappropriate Content';
+
     static async enhanceImage(req, res) {
         try {
             const imageFile = req.file.buffer;
@@ -25,25 +27,33 @@ class EditorController {
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
-                    message: output.error || 'Image is not safe'
+                    message: output.error || EditorModel.NSFW_MESSAGE
                 });
             }
 
-            if (output) {
+            if (result.output.length > 0) {
                 const user = req.user;                
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
-                    images: output
-                }); 
+                    image: result.output[0]
+                });
+            }
+
+            else if(result.id){
+                res.status(202).json({
+                    success: true,
+                    message: 'Enhancing in progress',
+                    id: result.id
+                });
             }
 
             else {
                 res.status(400).json({
                     success: false,
-                    message: 'No images returned from the model.'
+                    message: 'No result returned from the model.'
                 });
             }
         } 
@@ -84,7 +94,7 @@ class EditorController {
                 return res.status(400).json({
                     success: false,
                     safe: result.safe,
-                    message: result.error || 'Image is not safe'
+                    message: result.error || EditorModel.NSFW_MESSAGE
                 });
             }
 
@@ -139,7 +149,7 @@ class EditorController {
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
-                    message: output.error || 'Image is not safe'
+                    message: output.error || EditorModel.NSFW_MESSAGE
                 });
             }
 
@@ -195,7 +205,7 @@ class EditorController {
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
-                    message: output.error || 'Image is not safe'
+                    message: output.error || EditorModel.NSFW_MESSAGE
                 });
             }
 

@@ -19,6 +19,8 @@ class EditorModel {
     static MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY;
     static ENHANCE_URL = process.env.MODELSLAB_ENHANCE_URL;
 
+    static NSFW_MESSAGE = 'Please Follow Our NSFW Guidelines and Don\'t Upload or Try To Generate Inappropriate Content';
+
     /* 
      * Outpaint (image outpainting)
      *
@@ -35,13 +37,13 @@ class EditorModel {
         if(await isSafeImage(imageUrl) === false) {
             return {
                 safe: false,
-                error: 'Image is not safe'
+                error: EditorModel.NSFW_MESSAGE
             };
         }
         else if(await isSafePrompt(prompt) === false) {
             return {
                 safe: false,
-                error: 'Prompt is not safe'
+                error: EditorModel.NSFW_MESSAGE
             };
         }
 
@@ -85,7 +87,7 @@ class EditorModel {
         if(await isSafePrompt(prompt) !== true) {
             return {
                 safe: false,
-                error: 'Prompt is not safe'
+                error: EditorModel.NSFW_MESSAGE
             };
         }
 
@@ -265,7 +267,7 @@ class EditorModel {
         if(await isSafeImage(imageUrl) === false) {
             return {
                 safe: false,
-                error: 'Image is not safe'
+                error: EditorModel.NSFW_MESSAGE
             };
         }
 
@@ -308,7 +310,7 @@ class EditorModel {
         if(await isSafeImage(imageUrl) !== true) {
             return {
                 safe: false,
-                error: 'Image is not safe'
+                error: EditorModel.NSFW_MESSAGE
             };
         }
 
@@ -322,7 +324,18 @@ class EditorModel {
             track_id: null,
         });
 
-        return await EditorModel.handleModelResponse(response);
+        if(response.data.output.length === 0) {
+            return { 
+                output: [],
+                id: response.data.id
+            }
+        }
+        else{
+            return {
+                output: response.data.output,
+                id: null
+            }
+        }
     }
 
 
