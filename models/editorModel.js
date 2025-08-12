@@ -18,7 +18,7 @@ class EditorModel {
     static IMG_2_IMG_URL = process.env.MODELSLAB_IMG_2_IMG_URL;
     static MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY;
     static ENHANCE_URL = process.env.MODELSLAB_ENHANCE_URL;
-    static REMBG_HF_URL = 'https://pritombiswas9999-rembg-server.hf.space/api/remove-background-hq-bytes'; // Changed to HQ endpoint
+    static REMBG_HF_URL = 'https://pritombiswas9999-rembg-server.hf.space/api/remove-background-max-bytes'; // Changed to HQ endpoint
 
     static NSFW_MESSAGE = 'Please Follow Our NSFW Guidelines and Don\'t Upload or Try To Generate Inappropriate Content';
 
