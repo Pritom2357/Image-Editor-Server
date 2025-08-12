@@ -382,7 +382,7 @@ class EditorController {
 
     static async removeBackgroundLocal(req, res) {
         try {
-            console.log('Local background removal request received');
+            console.log('HuggingFace background removal request received');
 
             if (!req.file) {
                 return res.status(400).json({
@@ -394,9 +394,9 @@ class EditorController {
             const imageFile = req.file.buffer;
             const imageName = req.file.originalname;
 
-            console.log('Processing with Node.js background removal');
+            console.log('Processing with HuggingFace background removal service');
 
-            const result = await EditorModel.removeBackgroundLocalNode({
+            const result = await EditorModel.removeBackgroundLocal({
                 imageFile, 
                 imageName
             });
@@ -409,17 +409,17 @@ class EditorController {
                 res.status(200).json({
                     success: true,
                     image: result,
-                    message: "Background removed with Node.js - fast and reliable!"
+                    message: "Background removed with HuggingFace - fast and reliable!"
                 });
             } else {
-                throw new Error("Node.js processing returned no result");
+                throw new Error("HuggingFace processing returned no result");
             }
             
         } catch (error) {
-            console.error('Error in Node.js background removal:', error);
+            console.error('Error in HuggingFace background removal:', error);
             
-            // Fallback to API
-            console.log('Falling back to API background removal');
+            // Fallback to your existing API method if HF fails
+            console.log('Falling back to ModelsLab API background removal');
             return EditorController.removeBG(req, res);
         }
     }
