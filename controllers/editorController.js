@@ -20,33 +20,32 @@ class EditorController {
                 scale
             });
 
-
             const output = await EditorModel.enhanceImage({ imageFile, imageName, faceEnhance, scale });
 
-            if(output.safe !== true) {
+            if (output.safe !== true) {
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
-                    message: output.error || EditorModel.NSFW_MESSAGE
+                    message: output.error || EditorController.NSFW_MESSAGE
                 });
             }
 
-            if (result.output.length > 0) {
-                const user = req.user;                
+            if (output.output && output.output.length > 0) {
+                const user = req.user;
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
-                    image: result.output[0]
+                    image: output.output[0]
                 });
             }
 
-            else if(result.id){
+            else if (output.id) {
                 res.status(202).json({
                     success: true,
                     message: 'Enhancing in progress',
-                    id: result.id
+                    id: output.id
                 });
             }
 
@@ -56,7 +55,7 @@ class EditorController {
                     message: 'No result returned from the model.'
                 });
             }
-        } 
+        }
 
         catch (error) {
             console.error('Error in enhance image request:', error);
@@ -69,6 +68,7 @@ class EditorController {
         }
     }
 
+    
     static async outpaint(req, res) {
         try {
             const { prompt, negative_prompt, overlap_width, width, height, guidance_scale } = req.body;
@@ -87,10 +87,10 @@ class EditorController {
             });
 
             const result = await EditorModel.outpaint({ imageFile, imageName, prompt, negative_prompt, overlap_width, width, height, guidance_scale });
-            
-            if(result.safe === false) {
+
+            if (result.safe === false) {
                 console.log(result);
-                
+
                 return res.status(400).json({
                     success: false,
                     safe: result.safe,
@@ -99,7 +99,7 @@ class EditorController {
             }
 
             if (result.output.length > 0) {
-                const user = req.user;                
+                const user = req.user;
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
@@ -109,7 +109,7 @@ class EditorController {
                 });
             }
 
-            else if(result.id){
+            else if (result.id) {
                 res.status(202).json({
                     success: true,
                     message: 'Outpainting in progress',
@@ -145,7 +145,7 @@ class EditorController {
             const output = await EditorModel.textToImage({ prompt, negative_prompt, samples, width, height, safety_checker, enhance_prompt });
             console.log('Text to Image Response:', output);
 
-            if(output.safe === false) {
+            if (output.safe === false) {
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
@@ -154,7 +154,7 @@ class EditorController {
             }
 
             if (output) {
-                const user = req.user;                
+                const user = req.user;
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
@@ -183,9 +183,9 @@ class EditorController {
         }
     }
 
-    
 
-    
+
+
 
     static async imageToImage(req, res) {
 
@@ -201,7 +201,7 @@ class EditorController {
 
             console.log('Image to Image Response:', output);
 
-            if(output.safe === false) {
+            if (output.safe === false) {
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
@@ -210,7 +210,7 @@ class EditorController {
             }
 
             if (output) {
-                const user = req.user;                
+                const user = req.user;
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
@@ -221,7 +221,7 @@ class EditorController {
             }
 
             else {
-                
+
                 res.status(400).json({
                     success: false,
                     message: 'No images returned from the model.'
@@ -241,7 +241,7 @@ class EditorController {
     }
 
     // Add this new method to EditorController class
-    
+
 
 
     static async removeBG(req, res) {
@@ -268,13 +268,13 @@ class EditorController {
             });
 
             const result = await EditorModel.removeBG({
-                imageFile, 
+                imageFile,
                 imageName,
-                alpha_matting: alphaMatting === "true",  
-                post_process_mask: postProcessMask === "true"  
+                alpha_matting: alphaMatting === "true",
+                post_process_mask: postProcessMask === "true"
             });
 
-            if(result){
+            if (result) {
                 const resultUrl = Array.isArray(result) ? result[0] : result;
 
                 const user = req.user;
@@ -286,13 +286,13 @@ class EditorController {
                     image: resultUrl,
                     message: "Background removed successfully"
                 });
-            }else{
+            } else {
                 res.status(400).json({
                     success: false,
                     message: "No result returned from the bg-removal api"
                 });
             }
-            
+
         } catch (error) {
             console.error('Error in new remove background request:', error);
 
@@ -354,10 +354,10 @@ class EditorController {
             if (result) {
                 const resultUrl = Array.isArray(result) ? result[0] : result;
 
-                const user = req.user;                
+                const user = req.user;
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
-                
+
                 res.status(200).json({
                     success: true,
                     image: resultUrl,
@@ -397,7 +397,7 @@ class EditorController {
             console.log('Processing with HuggingFace background removal service');
 
             const result = await EditorModel.removeBackgroundLocal({
-                imageFile, 
+                imageFile,
                 imageName
             });
 
@@ -414,10 +414,10 @@ class EditorController {
             } else {
                 throw new Error("HuggingFace processing returned no result");
             }
-            
+
         } catch (error) {
             console.error('Error in HuggingFace background removal:', error);
-            
+
             // Fallback to your existing API method if HF fails
             console.log('Falling back to ModelsLab API background removal');
             return EditorController.removeBG(req, res);
@@ -437,7 +437,7 @@ class EditorController {
 
             const result = await FetchQueuedImage.fetchedQueuedImageByID(fetchID);
 
-            if(result.data.status === 'success' && result.data.output) {
+            if (result.data.status === 'success' && result.data.output) {
                 console.log('Image fetched successfully:', result.data.output);
 
                 res.status(200).json({
@@ -446,7 +446,7 @@ class EditorController {
                 });
             }
 
-            else if(result.data.status === 'processing') {
+            else if (result.data.status === 'processing') {
                 console.log('Image is still processing, please try again later');
 
                 res.status(202).json({
@@ -464,7 +464,7 @@ class EditorController {
                 });
             }
         }
-        
+
         catch (error) {
             console.error('Error fetching image by ID:', error);
             res.status(500).json({
