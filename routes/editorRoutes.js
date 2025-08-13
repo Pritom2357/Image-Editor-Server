@@ -4,7 +4,7 @@ const multer = require('multer');
 const EditorController = require('../controllers/editorController');
 const authenticateToken = require('../middleware/authenticateToken');
 
-// Configure multer
+// Configure multer for multiple files
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
@@ -12,7 +12,6 @@ const upload = multer({
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
         }
-        
         else {
             cb(new Error('Only image files are allowed!'), false);
         }
@@ -26,6 +25,7 @@ router.get('/test-routes', (req, res) => {
         availableRoutes: [
             'POST /api/remove-background',
             'POST /api/remove-background-local',
+            'POST /api/remove-background-with-mask', 
             'POST /api/remove-objects',
             'POST /api/outpaint',
             'POST /api/txt-2-img',
@@ -79,22 +79,15 @@ router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorC
 // Local background removal 
 router.post('/remove-background-local', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocal);
 
-// Mask creation route
-// router.post('/create-mask', authenticateToken, upload.single('image'), EditorController.createMaskOnly);
+router.post('/remove-background-with-mask', authenticateToken, upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'mask', maxCount: 1 }
+]), EditorController.removeBackgroundWithMask);
 
-// EXISTING ROUTES (keep for compatibility)
-
-// Outpaint (image outpainting)
 router.post('/outpaint', authenticateToken, upload.single('image'), EditorController.outpaint);
-
-// Text to Image
 router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
-
-// Image to Image
 router.post('/img-2-img', authenticateToken, upload.single('image'), EditorController.imageToImage);
-// Enhance Image
 router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
-// Fetch queued image by ID
 router.post('/fetch-queued-image/:fetchID', authenticateToken, EditorController.FetchImageByID);
 
 module.exports = router;

@@ -18,7 +18,7 @@ class EditorModel {
     static IMG_2_IMG_URL = process.env.MODELSLAB_IMG_2_IMG_URL;
     static MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY;
     static ENHANCE_URL = process.env.MODELSLAB_ENHANCE_URL;
-    static REMBG_HF_URL = 'https://pritombiswas9999-rembg-server.hf.space/api/remove-background-max-bytes'; // Changed to HQ endpoint
+    static REMBG_HF_URL = 'https://pritombiswas9999-rembg-server.hf.space/api/remove-background-max-bytes';
 
     static NSFW_MESSAGE = 'Please Follow Our NSFW Guidelines and Don\'t Upload or Try To Generate Inappropriate Content';
 
@@ -370,7 +370,64 @@ class EditorModel {
             throw new Error('Unknown response status from text-to-image model');
         }
     }
-}
 
+    static async removeBackgroundWithMask({imageFile, imageName, maskFile, maskName}){
+        try {
+            console.log("Starting HuggingFace MASK-GUIDED background removal");
+            console.log(`Using HF endpoint: ${EditorModel.REMBG_HF_URL.replace('max-bytes', 'with-mask')}`);
+
+            const FormData = require('form-data');
+            const form = new FormData();
+            
+            // Add both image and mask
+            form.append('image', imageFile, {
+                filename: imageName,
+                contentType: 'image/jpeg'
+            });
+            
+            form.append('mask', maskFile, {
+                filename: maskName,
+                contentType: 'image/png'
+            });
+
+            // Add mask-guided parameters
+            form.append('alpha_matting', 'true');
+            form.append('post_process_mask', 'true');
+
+            const maskGuidedEndpoint = EditorModel.REMBG_HF_URL.replace(
+                '/api/remove-background-max-bytes',
+                '/api/remove-background-with-mask'
+            );
+
+            const response = await axios.post(maskGuidedEndpoint, form, {
+                headers: {
+                    ...form.getHeaders(),
+                },
+                responseType: 'arraybuffer',
+                timeout: 150000 // Increased timeout for mask processing
+            });
+
+            if (response.status === 200 && response.data) {
+                const processedImageName = `bg-removed-mask-guided-${Date.now()}.png`;
+                const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
+                
+                console.log('MASK-GUIDED background removed, uploaded to:', imageUrl);
+                console.log('Processing time:', response.headers['x-processing-time']);
+                console.log('Mask-guided:', response.headers['x-mask-guided']);
+                return imageUrl;
+            } else {
+                throw new Error(`HuggingFace Mask-Guided API returned status ${response.status}`);
+            }
+        }
+        
+        catch (error) {
+            console.error('Error in HuggingFace mask-guided background removal:', error.message);
+            
+            // 🔄 Fallback: Try regular background removal if mask-guided fails
+            console.log('Falling back to regular HuggingFace background removal...');
+            return await EditorModel.removeBackgroundLocal({ imageFile, imageName });
+        }
+    }
+}
 
 module.exports = EditorModel;

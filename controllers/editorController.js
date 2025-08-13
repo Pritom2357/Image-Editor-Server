@@ -474,6 +474,67 @@ class EditorController {
             });
         }
     }
+
+    static async removeBackgroundWithMask(req, res) {
+        try {
+            console.log('Mask-guided background removal request received');
+            console.log('Files received:', Object.keys(req.files || {}));
+            
+            if (!req.files || !req.files.image || !req.files.mask) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Both image and mask files are required'
+                });
+            }
+
+            const imageFile = req.files.image[0].buffer;
+            const imageName = req.files.image[0].originalname;
+            const maskFile = req.files.mask[0].buffer;
+            const maskName = req.files.mask[0].originalname;
+
+            console.log('Processing mask-guided background removal:', {
+                imageName,
+                maskName,
+                imageSize: imageFile.length,
+                maskSize: maskFile.length
+            });
+
+            const result = await EditorModel.removeBackgroundWithMask({
+                imageFile, 
+                imageName,
+                maskFile,
+                maskName
+            });
+
+            if (result) {
+                const resultUrl = Array.isArray(result) ? result[0] : result;
+
+                const user = req.user;
+                const service = formatServicePath(req.path);
+                trackUsage(user.uuid, user.username, user.email, service);
+
+                res.status(200).json({
+                    success: true,
+                    image: resultUrl,
+                    message: "Mask-guided background removal successful! 🎨"
+                });
+            } else {
+                res.status(400).json({
+                    success: false,
+                    message: "No result returned from the mask-guided bg-removal service"
+                });
+            }
+            
+        } catch (error) {
+            console.error('Error in mask-guided background removal:', error);
+
+            res.status(500).json({
+                success: false,
+                message: 'An error occurred while processing mask-guided background removal.',
+                error: error.message
+            });
+        }
+    }
 }
 
 module.exports = EditorController;
