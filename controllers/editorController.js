@@ -22,7 +22,11 @@ class EditorController {
 
             const output = await EditorModel.enhanceImage({ imageFile, imageName, faceEnhance, scale });
 
+            console.log('Enhance Image Response:', output);
+
             if (output.safe !== true) {
+                console.log('NSFW content detected:', output);
+
                 return res.status(400).json({
                     success: false,
                     safe: output.safe,
@@ -68,7 +72,7 @@ class EditorController {
         }
     }
 
-    
+
     static async outpaint(req, res) {
         try {
             const { prompt, negative_prompt, overlap_width, width, height, guidance_scale } = req.body;
