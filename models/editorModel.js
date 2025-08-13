@@ -289,7 +289,7 @@ class EditorModel {
     static async enhanceImage({ imageFile, imageName, faceEnhance, scale }) {
         const imageUrl = await uploadToCloud(imageFile, imageName);
 
-        if(await isSafeImage(imageUrl) !== true) {
+        if(await isSafeImage(imageUrl) === false) {
             return {
                 safe: false,
                 error: EditorModel.NSFW_MESSAGE

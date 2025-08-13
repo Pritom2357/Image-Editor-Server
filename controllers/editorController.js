@@ -24,7 +24,7 @@ class EditorController {
 
             console.log('Enhance Image Response:', output);
 
-            if (output.safe !== true) {
+            if (output.safe === false) {
                 console.log('NSFW content detected:', output);
 
                 return res.status(400).json({
@@ -34,7 +34,7 @@ class EditorController {
                 });
             }
 
-            if (output.output && output.output.length > 0) {
+            if (output.output.length > 0) {
                 const user = req.user;
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
