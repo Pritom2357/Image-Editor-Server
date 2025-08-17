@@ -1,6 +1,6 @@
 const EditorModel = require('../models/editorModel');
-const trackUsage = require('../utility/trackUsage');
-const formatServicePath = require('../utility/formatServicePath');
+// const trackUsage = require('../utility/trackUsage');
+// const formatServicePath = require('../utility/formatServicePath');
 const FetchQueuedImage = require('../utility/fetch-queued-image');
 
 class EditorController {
@@ -35,9 +35,9 @@ class EditorController {
             }
 
             if (output.output.length > 0) {
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
@@ -103,9 +103,9 @@ class EditorController {
             }
 
             if (result.output.length > 0) {
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
@@ -158,9 +158,9 @@ class EditorController {
             }
 
             if (output) {
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
@@ -214,9 +214,9 @@ class EditorController {
             }
 
             if (output) {
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
@@ -281,9 +281,9 @@ class EditorController {
             if (result) {
                 const resultUrl = Array.isArray(result) ? result[0] : result;
 
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
@@ -358,9 +358,9 @@ class EditorController {
             if (result) {
                 const resultUrl = Array.isArray(result) ? result[0] : result;
 
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
@@ -406,9 +406,9 @@ class EditorController {
             });
 
             if (result) {
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
+                // const user = req.user;
+                // const service = formatServicePath(req.path);
+                // trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
