@@ -71,13 +71,13 @@ router.get('/test-node-bg-removal', async (req, res) => {
 // NEW WORKFLOW ROUTES
 
 // Primary background removal using removebg_mask API
-router.post('/remove-background', authenticateToken, upload.single('image'), EditorController.removeBG);
+router.post('/remove-background', upload.single('image'), EditorController.removeBG);
 
 // Object removal for additional cleanup
-router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorController.removeObjectsNew);
+router.post('/remove-objects', upload.single('mask'), EditorController.removeObjectsNew);
 
 // Local background removal 
-router.post('/remove-background-local', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocal);
+router.post('/remove-background-local', upload.single('image'), EditorController.removeBackgroundLocal);
 
 // Mask creation route
 // router.post('/create-mask', authenticateToken, upload.single('image'), EditorController.createMaskOnly);
@@ -85,16 +85,16 @@ router.post('/remove-background-local', authenticateToken, upload.single('image'
 // EXISTING ROUTES (keep for compatibility)
 
 // Outpaint (image outpainting)
-router.post('/outpaint', authenticateToken, upload.single('image'), EditorController.outpaint);
+router.post('/outpaint', upload.single('image'), EditorController.outpaint);
 
 // Text to Image
-router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
+router.post('/txt-2-img', EditorController.textToImage);
 
 // Image to Image
-router.post('/img-2-img', authenticateToken, upload.single('image'), EditorController.imageToImage);
+router.post('/img-2-img', upload.single('image'), EditorController.imageToImage);
 // Enhance Image
-router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
+router.post('/enhance-image', upload.single('image'), EditorController.enhanceImage);
 // Fetch queued image by ID
-router.post('/fetch-queued-image/:fetchID', authenticateToken, EditorController.FetchImageByID);
+router.post('/fetch-queued-image/:fetchID', EditorController.FetchImageByID);
 
 module.exports = router;
