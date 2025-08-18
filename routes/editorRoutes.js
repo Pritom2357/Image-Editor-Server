@@ -89,5 +89,6 @@ router.post('/txt-2-img', authenticateToken, EditorController.textToImage);
 router.post('/img-2-img', authenticateToken, upload.single('image'), EditorController.imageToImage);
 router.post('/enhance-image', authenticateToken, upload.single('image'), EditorController.enhanceImage);
 router.post('/fetch-queued-image/:fetchID', authenticateToken, EditorController.FetchImageByID);
+router.post('/remove-background-enhanced', EditorController.removeBackgroundEnhanced);
 
 module.exports = router;

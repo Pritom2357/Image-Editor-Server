@@ -535,6 +535,58 @@ class EditorController {
             });
         }
     }
+
+    static async removeBackgroundEnhanced(req, res) {
+        try {
+            console.log('🎨 Enhanced Background Removal Request');
+            console.log('Body params:', req.body);
+            
+            if (!req.files?.image) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No image file provided'
+                });
+            }
+
+            const imageFile = req.files.image;
+            const maskFile = req.files?.mask;
+            
+            // Extract enhancement parameters from request body
+            const enhancementParams = {
+                imageFile: imageFile.data,
+                imageName: imageFile.name,
+                maskFile: maskFile ? maskFile.data : null,
+                maskName: maskFile ? maskFile.name : null,
+                // Enhancement options
+                addBackground: req.body.add_background === 'true',
+                bgColorR: parseInt(req.body.bg_color_r) || 255,
+                bgColorG: parseInt(req.body.bg_color_g) || 255,
+                bgColorB: parseInt(req.body.bg_color_b) || 255,
+                transparency: parseFloat(req.body.transparency) || 1.0,
+                brightness: parseFloat(req.body.brightness) || 1.0,
+                saturation: parseFloat(req.body.saturation) || 1.0,
+                contrast: parseFloat(req.body.contrast) || 1.0
+            };
+
+            console.log('Enhancement parameters:', enhancementParams);
+
+            const processedImageUrl = await EditorModel.removeBackgroundEnhanced(enhancementParams);
+
+            res.json({
+                success: true,
+                message: maskFile ? 'Enhanced mask-guided background removal successful!' : 'Enhanced background removal successful!',
+                image: processedImageUrl,
+                images: [processedImageUrl] // For compatibility with existing frontend
+            });
+
+        } catch (error) {
+            console.error('Enhanced background removal error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Enhanced background removal failed'
+            });
+        }
+    }
 }
 
 module.exports = EditorController;

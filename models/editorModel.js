@@ -428,6 +428,89 @@ class EditorModel {
             return await EditorModel.removeBackgroundLocal({ imageFile, imageName });
         }
     }
+
+    static async removeBackgroundEnhanced({
+        imageFile, 
+        imageName, 
+        maskFile = null, 
+        maskName = null,
+        addBackground = false,
+        bgColorR = 255,
+        bgColorG = 255, 
+        bgColorB = 255,
+        transparency = 1.0,
+        brightness = 1.0,
+        saturation = 1.0,
+        contrast = 1.0
+    }) {
+        try {
+            console.log("Starting ENHANCED HuggingFace background removal");
+            console.log(`Enhancements: bg=${addBackground}, transparency=${transparency}, brightness=${brightness}, saturation=${saturation}, contrast=${contrast}`);
+
+            const FormData = require('form-data');
+            const form = new FormData();
+            
+            form.append('image', imageFile, {
+                filename: imageName,
+                contentType: 'image/jpeg'
+            });
+
+            form.append('add_background', addBackground.toString());
+            form.append('bg_color_r', bgColorR.toString());
+            form.append('bg_color_g', bgColorG.toString());
+            form.append('bg_color_b', bgColorB.toString());
+            form.append('transparency', transparency.toString());
+            form.append('brightness', brightness.toString());
+            form.append('saturation', saturation.toString());
+            form.append('contrast', contrast.toString());
+
+            if (maskFile && maskName) {
+                console.log("Adding custom mask for guided removal");
+                form.append('mask', maskFile, {
+                    filename: maskName,
+                    contentType: 'image/png'
+                });
+            }
+
+            const endpoint = (maskFile && maskName) 
+                ? EditorModel.REMBG_HF_URL.replace('/api/remove-background-max-bytes', '/api/remove-background-with-mask')
+                : EditorModel.REMBG_HF_URL; // This uses max-bytes endpoint
+
+            console.log(`Using endpoint: ${endpoint}`);
+
+            const response = await axios.post(endpoint, form, {
+                headers: {
+                    ...form.getHeaders(),
+                },
+                responseType: 'arraybuffer',
+                timeout: 180000 
+            });
+
+            if (response.status === 200 && response.data) {
+                const processedImageName = `bg-removed-enhanced-${Date.now()}.${addBackground ? 'jpg' : 'png'}`;
+                const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
+                
+                console.log('ENHANCED background removal complete, uploaded to:', imageUrl);
+                console.log('Processing time:', response.headers['x-processing-time']);
+                console.log('Enhancements applied:', response.headers['x-enhanced']);
+                console.log('Output format:', response.headers['x-output-format']);
+                
+                return imageUrl;
+            } else {
+                throw new Error(`Enhanced background removal API returned status ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error in enhanced background removal:', error.message);
+            
+            
+            console.log('Falling back to regular background removal...');
+            if (maskFile && maskName) {
+                return await EditorModel.removeBackgroundWithMask({ imageFile, imageName, maskFile, maskName });
+            } else {
+                return await EditorModel.removeBackgroundLocal({ imageFile, imageName });
+            }
+        }
+    }
 }
 
 module.exports = EditorModel;
