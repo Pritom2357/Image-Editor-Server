@@ -587,6 +587,83 @@ class EditorController {
             });
         }
     }
+
+    static async removeBackgroundLocalEnhanced(req, res) {
+        try {
+            console.log('🌟 Enhanced background removal request received');
+            console.log('Body params:', req.body);
+
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No image file provided'
+                });
+            }
+
+            const imageFile = req.file.buffer;
+            const imageName = req.file.originalname;
+            
+            // Extract and validate enhancement parameters
+            const enhancementParams = {
+                imageFile,
+                imageName,
+                addBackground: req.body.add_background === 'true',
+                bgColorR: Math.max(0, Math.min(255, parseInt(req.body.bg_color_r) || 255)),
+                bgColorG: Math.max(0, Math.min(255, parseInt(req.body.bg_color_g) || 255)),
+                bgColorB: Math.max(0, Math.min(255, parseInt(req.body.bg_color_b) || 255)),
+                transparency: Math.max(0, Math.min(1, parseFloat(req.body.transparency) || 1.0)),
+                brightness: Math.max(0.1, Math.min(3, parseFloat(req.body.brightness) || 1.0)),
+                saturation: Math.max(0, Math.min(3, parseFloat(req.body.saturation) || 1.0)),
+                contrast: Math.max(0.1, Math.min(3, parseFloat(req.body.contrast) || 1.0))
+            };
+
+            console.log('📊 Processing with parameters:', {
+                imageName: enhancementParams.imageName,
+                addBackground: enhancementParams.addBackground,
+                bgColor: `rgb(${enhancementParams.bgColorR}, ${enhancementParams.bgColorG}, ${enhancementParams.bgColorB})`,
+                transparency: enhancementParams.transparency,
+                brightness: enhancementParams.brightness,
+                saturation: enhancementParams.saturation,
+                contrast: enhancementParams.contrast
+            });
+
+            const result = await EditorModel.removeBackgroundEnhanced(enhancementParams);
+
+            if (result) {
+                const user = req.user;
+                const service = formatServicePath(req.path);
+                trackUsage(user.uuid, user.username, user.email, service);
+
+                res.status(200).json({
+                    success: true,
+                    image: result,
+                    message: "Enhanced background removal successful! 🎨✨",
+                    enhanced: true,
+                    parameters: {
+                        addBackground: enhancementParams.addBackground,
+                        bgColor: enhancementParams.addBackground ? 
+                            `rgb(${enhancementParams.bgColorR}, ${enhancementParams.bgColorG}, ${enhancementParams.bgColorB})` : null,
+                        transparency: enhancementParams.transparency,
+                        brightness: enhancementParams.brightness,
+                        saturation: enhancementParams.saturation,
+                        contrast: enhancementParams.contrast
+                    }
+                });
+            } else {
+                throw new Error("Enhanced processing returned no result");
+            }
+            
+        } catch (error) {
+            console.error('❌ Error in enhanced background removal:', error);
+            
+            res.status(500).json({
+                success: false,
+                message: 'Enhanced background removal failed.',
+                error: error.message,
+                enhanced: false
+            });
+        }
+    }
 }
 
 module.exports = EditorController;

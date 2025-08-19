@@ -70,19 +70,23 @@ router.get('/test-node-bg-removal', async (req, res) => {
 
 // NEW WORKFLOW ROUTES
 
-// Primary background removal using removebg_mask API
-router.post('/remove-background', authenticateToken, upload.single('image'), EditorController.removeBG);
-
-// Object removal for additional cleanup
-router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorController.removeObjectsNew);
-
-// Local background removal 
+// Basic background removal
 router.post('/remove-background-local', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocal);
 
+// Enhanced background removal with customization options
+router.post('/remove-background-local-enhanced', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocalEnhanced);
+
+// Mask-guided background removal
 router.post('/remove-background-with-mask', authenticateToken, upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'mask', maxCount: 1 }
 ]), EditorController.removeBackgroundWithMask);
+
+// Fallback to ModelsLab API
+router.post('/remove-background', authenticateToken, upload.single('image'), EditorController.removeBG);
+
+// Object removal for additional cleanup
+router.post('/remove-objects', authenticateToken, upload.single('mask'), EditorController.removeObjectsNew);
 
 router.post('/outpaint', authenticateToken, upload.single('image'), EditorController.outpaint);
 router.post('/txt-2-img', authenticateToken, EditorController.textToImage);

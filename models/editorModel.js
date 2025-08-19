@@ -194,39 +194,67 @@ class EditorModel {
 
     static async removeBackgroundLocal({imageFile, imageName}){
         try {
-            console.log("Starting HuggingFace HIGH QUALITY background removal");
-            console.log(`Using HF endpoint: ${EditorModel.REMBG_HF_URL}`);
+            console.log("🚀 Starting basic background removal");
+            console.log(`Using endpoint: ${EditorModel.REMBG_HF_URL}`);
 
             const FormData = require('form-data');
             const form = new FormData();
             
+            // Add image file
             form.append('image', imageFile, {
                 filename: imageName,
                 contentType: 'image/jpeg'
             });
+
+            // Add basic parameters matching Python's defaults
+            form.append('add_background', 'false');
+            form.append('bg_color_r', '255');
+            form.append('bg_color_g', '255');
+            form.append('bg_color_b', '255');
+            form.append('transparency', '1.0');
+            form.append('brightness', '1.0');
+            form.append('saturation', '1.0');
+            form.append('contrast', '1.0');
 
             const response = await axios.post(EditorModel.REMBG_HF_URL, form, {
                 headers: {
                     ...form.getHeaders(),
                 },
                 responseType: 'arraybuffer',
-                timeout: 120000 // Increased timeout for HQ processing
+                timeout: 120000 // 2 minute timeout
             });
 
             if (response.status === 200 && response.data) {
-                const processedImageName = `bg-removed-hq-${Date.now()}.png`;
+                // Check if response is a JSON error message
+                const contentType = response.headers['content-type'];
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = JSON.parse(response.data.toString());
+                    throw new Error(`Python server error: ${errorData.detail || 'Unknown error'}`);
+                }
+
+                // Determine the correct file extension based on content type
+                const outputFormat = response.headers['x-output-format'] || 'png';
+                const processedImageName = `bg-removed-${Date.now()}.${outputFormat}`;
                 const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
                 
-                console.log('HIGH QUALITY background removed, uploaded to:', imageUrl);
-                console.log('Processing time:', response.headers['x-processing-time']);
+                console.log('✅ Background removal completed successfully');
+                console.log('📊 Processing time:', response.headers['x-processing-time']);
+                console.log('📊 Quality level:', response.headers['x-quality']);
+                
                 return imageUrl;
             } else {
-                throw new Error(`HuggingFace API returned status ${response.status}`);
+                throw new Error(`Background removal API returned status ${response.status}`);
             }
         }
-        
         catch (error) {
-            console.error('Error in HuggingFace HQ background removal:', error.message);
+            console.error('❌ Background removal error:', error.message);
+            
+            // Fallback to ModelsLab API
+            if (error.message.includes('Python server') || error.message.includes('timeout')) {
+                console.log('🔄 Falling back to ModelsLab API for background removal');
+                return await EditorModel.removeBG({ imageFile, imageName });
+            }
+            
             throw error;
         }
     }
@@ -487,28 +515,41 @@ class EditorModel {
             });
 
             if (response.status === 200 && response.data) {
-                const processedImageName = `bg-removed-enhanced-${Date.now()}.${addBackground ? 'jpg' : 'png'}`;
+                // Check if response is a JSON error message
+                const contentType = response.headers['content-type'];
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = JSON.parse(response.data.toString());
+                    throw new Error(`Python server error: ${errorData.detail || 'Unknown error'}`);
+                }
+
+                // Get output format from header or determine from settings
+                const outputFormat = response.headers['x-output-format'] || (addBackground ? 'jpg' : 'png');
+                const processedImageName = `bg-removed-enhanced-${Date.now()}.${outputFormat}`;
                 const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
                 
-                console.log('ENHANCED background removal complete, uploaded to:', imageUrl);
-                console.log('Processing time:', response.headers['x-processing-time']);
-                console.log('Enhancements applied:', response.headers['x-enhanced']);
-                console.log('Output format:', response.headers['x-output-format']);
+                console.log('✅ Enhanced background removal completed successfully');
+                console.log('📊 Processing stats:', {
+                    processingTime: response.headers['x-processing-time'],
+                    quality: response.headers['x-quality'],
+                    enhanced: response.headers['x-enhanced'],
+                    backgroundAdded: response.headers['x-background-added'],
+                    outputFormat: response.headers['x-output-format']
+                });
                 
                 return imageUrl;
             } else {
                 throw new Error(`Enhanced background removal API returned status ${response.status}`);
             }
         } catch (error) {
-            console.error('Error in enhanced background removal:', error.message);
+            console.error('❌ Enhanced background removal error:', error.message);
             
-            
-            console.log('Falling back to regular background removal...');
-            if (maskFile && maskName) {
-                return await EditorModel.removeBackgroundWithMask({ imageFile, imageName, maskFile, maskName });
-            } else {
+            // Fall back to basic background removal
+            if (error.message.includes('Python server') || error.message.includes('timeout')) {
+                console.log('🔄 Falling back to basic background removal');
                 return await EditorModel.removeBackgroundLocal({ imageFile, imageName });
             }
+            
+            throw error;
         }
     }
 }
