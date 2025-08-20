@@ -541,78 +541,6 @@ class EditorController {
         }
     }
 
-    static async removeBackgroundEnhanced(req, res) {
-        try {
-            console.log('🎨 Enhanced Background Removal Request');
-            console.log('Body params:', req.body);
-            
-            if (!req.files?.image) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'No image file provided'
-                });
-            }
-
-            const imageFile = req.files.image;
-            const maskFile = req.files?.mask;
-            
-            // Extract enhancement parameters from request body
-            const enhancementParams = {
-                imageFile: imageFile.data,
-                imageName: imageFile.name,
-                maskFile: maskFile ? maskFile.data : null,
-                maskName: maskFile ? maskFile.name : null,
-                // Enhancement options
-                addBackground: req.body.add_background === 'true',
-                bgColorR: parseInt(req.body.bg_color_r) || 255,
-                bgColorG: parseInt(req.body.bg_color_g) || 255,
-                bgColorB: parseInt(req.body.bg_color_b) || 255,
-                transparency: parseFloat(req.body.transparency) || 1.0,
-                brightness: parseFloat(req.body.brightness) || 1.0,
-                saturation: parseFloat(req.body.saturation) || 1.0,
-                contrast: parseFloat(req.body.contrast) || 1.0
-            };
-
-            console.log('Enhancement parameters:', enhancementParams);
-
-            // Add this debugging before calling the model
-            console.log('⚠️ PRE-CALL PARAMETERS CHECK:', {
-              addBackground: enhancementParams.addBackground,
-              bgColorR: enhancementParams.bgColorR, // Verify this is 255
-              bgColorG: enhancementParams.bgColorG, // Verify this is 0
-              bgColorB: enhancementParams.bgColorB  // Verify this is 0
-            });
-
-            // Make sure we're passing the EXACT object with the EXACT properties
-            const result = await EditorModel.removeBackgroundEnhanced({
-              imageFile: enhancementParams.imageFile,
-              imageName: enhancementParams.imageName,
-              addBackground: enhancementParams.addBackground,
-              bgColorR: enhancementParams.bgColorR,
-              bgColorG: enhancementParams.bgColorG,
-              bgColorB: enhancementParams.bgColorB,
-              transparency: enhancementParams.transparency,
-              brightness: enhancementParams.brightness,
-              saturation: enhancementParams.saturation,
-              contrast: enhancementParams.contrast
-            });
-
-            res.json({
-                success: true,
-                message: maskFile ? 'Enhanced mask-guided background removal successful!' : 'Enhanced background removal successful!',
-                image: processedImageUrl,
-                images: [processedImageUrl] // For compatibility with existing frontend
-            });
-
-        } catch (error) {
-            console.error('Enhanced background removal error:', error);
-            res.status(500).json({
-                success: false,
-                message: error.message || 'Enhanced background removal failed'
-            });
-        }
-    }
-
     static async removeBackgroundLocalEnhanced(req, res) {
         try {
             console.log('🌟 Enhanced background removal request received');
@@ -628,27 +556,28 @@ class EditorController {
             const imageFile = req.file.buffer;
             const imageName = req.file.originalname;
             
+            // Extract parameters correctly from the request body
+            const addBackground = req.body.add_background === 'true';
             const bgColorR = Math.max(0, Math.min(255, parseInt(req.body.bg_color_r) || 255));
             const bgColorG = Math.max(0, Math.min(255, parseInt(req.body.bg_color_g) || 255));
             const bgColorB = Math.max(0, Math.min(255, parseInt(req.body.bg_color_b) || 255));
-            const addBackground = req.body.add_background === 'true';
             const transparency = Math.max(0, Math.min(1, parseFloat(req.body.transparency) || 1.0));
             const brightness = Math.max(0.1, Math.min(3, parseFloat(req.body.brightness) || 1.0));
             const saturation = Math.max(0, Math.min(3, parseFloat(req.body.saturation) || 1.0));
             const contrast = Math.max(0.1, Math.min(3, parseFloat(req.body.contrast) || 1.0));
 
-            // Log the ACTUAL values being used
+            // Log the actual extracted values for debugging
             console.log('📊 Processing with parameters:', {
                 imageName,
                 addBackground,
-                bgColor: `rgb(${bgColorR}, ${bgColorG}, ${bgColorB})`,
+                bgColor: `rgb(${bgColorR}, ${bgColorG}, ${bgColorB})`, // Using actual RGB values
                 transparency,
                 brightness,
                 saturation,
                 contrast
             });
 
-            // ✅ FIX: Explicitly pass each parameter individually
+            // Pass parameters individually to avoid any object reference issues
             const result = await EditorModel.removeBackgroundEnhanced({
                 imageFile,
                 imageName,
