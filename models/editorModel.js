@@ -481,17 +481,18 @@ class EditorModel {
         imageName, 
         maskFile = null, 
         maskName = null,
-        addBackground = false,
-        bgColorR = 255,
-        bgColorG = 255, 
-        bgColorB = 255,
-        transparency = 1.0,
-        brightness = 1.0,
-        saturation = 1.0,
-        contrast = 1.0
+        addBackground,     
+        bgColorR,           
+        bgColorG,             
+        bgColorB,           
+        transparency,       
+        brightness,         
+        saturation,         
+        contrast            
     }) {
         try {
             console.log("Starting ENHANCED HuggingFace background removal");
+            console.log(`✅ ACTUAL COLORS BEING SENT: R=${bgColorR}, G=${bgColorG}, B=${bgColorB}`); 
             console.log(`Enhancements: bg=${addBackground}, transparency=${transparency}, brightness=${brightness}, saturation=${saturation}, contrast=${contrast}`);
 
             const FormData = require('form-data');
@@ -503,9 +504,9 @@ class EditorModel {
             });
 
             form.append('add_background', addBackground.toString());
-            form.append('bg_color_r', bgColorR.toString());
-            form.append('bg_color_g', bgColorG.toString());
-            form.append('bg_color_b', bgColorB.toString());
+            form.append('bg_color_r', bgColorR.toString());      
+            form.append('bg_color_g', bgColorG.toString());        
+            form.append('bg_color_b', bgColorB.toString());      
             form.append('transparency', transparency.toString());
             form.append('brightness', brightness.toString());
             form.append('saturation', saturation.toString());
@@ -521,7 +522,7 @@ class EditorModel {
 
             const endpoint = (maskFile && maskName) 
                 ? EditorModel.REMBG_HF_URL.replace('/api/remove-background-max-bytes', '/api/remove-background-with-mask')
-                : EditorModel.REMBG_HF_URL; // This uses max-bytes endpoint
+                : EditorModel.REMBG_HF_URL;
 
             console.log(`Using endpoint: ${endpoint}`);
 

@@ -608,7 +608,7 @@ class EditorController {
             const imageFile = req.file.buffer;
             const imageName = req.file.originalname;
             
-            // Extract and validate enhancement parameters
+            // ✅ FIX: Extract parameters correctly
             const enhancementParams = {
                 imageFile,
                 imageName,
