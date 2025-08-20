@@ -558,9 +558,9 @@ class EditorController {
             
             // Extract parameters correctly from the request body
             const addBackground = req.body.add_background === 'true';
-            const bgColorR = Math.max(0, Math.min(255, parseInt(req.body.bg_color_r) || 255));
-            const bgColorG = Math.max(0, Math.min(255, parseInt(req.body.bg_color_g) || 255));
-            const bgColorB = Math.max(0, Math.min(255, parseInt(req.body.bg_color_b) || 255));
+            const bgColorR = Math.max(0, Math.min(255, req.body.bg_color_r === undefined ? 255 : parseInt(req.body.bg_color_r)));
+            const bgColorG = Math.max(0, Math.min(255, req.body.bg_color_g === undefined ? 255 : parseInt(req.body.bg_color_g)));
+            const bgColorB = Math.max(0, Math.min(255, req.body.bg_color_b === undefined ? 255 : parseInt(req.body.bg_color_b)));
             const transparency = Math.max(0, Math.min(1, parseFloat(req.body.transparency) || 1.0));
             const brightness = Math.max(0.1, Math.min(3, parseFloat(req.body.brightness) || 1.0));
             const saturation = Math.max(0, Math.min(3, parseFloat(req.body.saturation) || 1.0));
