@@ -505,7 +505,7 @@ class EditorModel {
             });
 
             // Add parameters - ensure all are converted to strings
-            form.append('add_background', addBackground.toString());
+            form.append('add_background', addBackground ? "True" : "False"); 
             form.append('bg_color_r', bgColorR.toString());
             form.append('bg_color_g', bgColorG.toString());
             form.append('bg_color_b', bgColorB.toString());
