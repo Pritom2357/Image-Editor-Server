@@ -74,7 +74,7 @@ router.get('/test-node-bg-removal', async (req, res) => {
 router.post('/remove-background-local', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocal);
 
 // Enhanced background removal with customization options
-router.post('/remove-background-local-enhanced', authenticateToken, upload.single('image'), EditorController.removeBackgroundEnhanced);
+router.post('/remove-background-local-enhanced', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocalEnhanced);
 
 // Mask-guided background removal
 router.post('/remove-background-with-mask', authenticateToken, upload.fields([
