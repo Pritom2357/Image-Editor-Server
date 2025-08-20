@@ -625,7 +625,7 @@ class EditorController {
             console.log('📊 Processing with parameters:', {
                 imageName: enhancementParams.imageName,
                 addBackground: enhancementParams.addBackground,
-                bgColor: `rgb(${enhancementParams.bgColorR}, ${enhancementParams.bgColorG}, ${enhancementParams.bgColorB})`,
+                bgColor: `rgb(${enhancementParams.bgColorR}, ${enhancementParams.bgColorG}, ${enhancementParams.bgColorB})`, 
                 transparency: enhancementParams.transparency,
                 brightness: enhancementParams.brightness,
                 saturation: enhancementParams.saturation,
@@ -647,7 +647,7 @@ class EditorController {
                     parameters: {
                         addBackground: enhancementParams.addBackground,
                         bgColor: enhancementParams.addBackground ? 
-                            `rgb(${enhancementParams.bgColorR}, ${enhancementParams.bgColorG}, ${enhancementParams.bgColorB})` : null,
+                            `rgb(${enhancementParams.bgColorR}, ${enhancementParams.bgColorG}, ${enhancementParams.bgColorB})` : null, 
                         transparency: enhancementParams.transparency,
                         brightness: enhancementParams.brightness,
                         saturation: enhancementParams.saturation,
