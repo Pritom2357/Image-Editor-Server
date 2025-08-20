@@ -575,7 +575,27 @@ class EditorController {
 
             console.log('Enhancement parameters:', enhancementParams);
 
-            const processedImageUrl = await EditorModel.removeBackgroundEnhanced(enhancementParams);
+            // Add this debugging before calling the model
+            console.log('⚠️ PRE-CALL PARAMETERS CHECK:', {
+              addBackground: enhancementParams.addBackground,
+              bgColorR: enhancementParams.bgColorR, // Verify this is 255
+              bgColorG: enhancementParams.bgColorG, // Verify this is 0
+              bgColorB: enhancementParams.bgColorB  // Verify this is 0
+            });
+
+            // Make sure we're passing the EXACT object with the EXACT properties
+            const result = await EditorModel.removeBackgroundEnhanced({
+              imageFile: enhancementParams.imageFile,
+              imageName: enhancementParams.imageName,
+              addBackground: enhancementParams.addBackground,
+              bgColorR: enhancementParams.bgColorR,
+              bgColorG: enhancementParams.bgColorG,
+              bgColorB: enhancementParams.bgColorB,
+              transparency: enhancementParams.transparency,
+              brightness: enhancementParams.brightness,
+              saturation: enhancementParams.saturation,
+              contrast: enhancementParams.contrast
+            });
 
             res.json({
                 success: true,
