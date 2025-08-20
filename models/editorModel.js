@@ -399,15 +399,25 @@ class EditorModel {
         }
     }
 
-    static async removeBackgroundWithMask({imageFile, imageName, maskFile, maskName}){
+    static async removeBackgroundWithMask({
+        imageFile, 
+        imageName, 
+        maskFile, 
+        maskName,
+        postProcessMask = false
+    }) {
         try {
-            console.log("Starting HuggingFace MASK-GUIDED background removal");
-            console.log(`Using HF endpoint: ${EditorModel.REMBG_HF_URL.replace('max-bytes', 'with-mask')}`);
+            console.log("🎨 Starting mask-guided background removal");
+            
+            const maskEndpoint = EditorModel.REMBG_HF_URL.replace(
+                '/api/remove-background-max-bytes',
+                '/api/remove-background-with-mask'
+            );
+            console.log(`Using endpoint: ${maskEndpoint}`);
 
             const FormData = require('form-data');
             const form = new FormData();
             
-            // Add both image and mask
             form.append('image', imageFile, {
                 filename: imageName,
                 contentType: 'image/jpeg'
@@ -418,41 +428,50 @@ class EditorModel {
                 contentType: 'image/png'
             });
 
-            // Add mask-guided parameters
-            form.append('alpha_matting', 'true');
-            form.append('post_process_mask', 'true');
+            form.append('post_process_mask', postProcessMask.toString());
 
-            const maskGuidedEndpoint = EditorModel.REMBG_HF_URL.replace(
-                '/api/remove-background-max-bytes',
-                '/api/remove-background-with-mask'
-            );
+            console.log('📊 Mask processing parameters:', {
+                postProcessMask,
+                maskEndpoint
+            });
 
-            const response = await axios.post(maskGuidedEndpoint, form, {
+            const response = await axios.post(maskEndpoint, form, {
                 headers: {
                     ...form.getHeaders(),
                 },
                 responseType: 'arraybuffer',
-                timeout: 150000 // Increased timeout for mask processing
+                timeout: 150000
             });
 
             if (response.status === 200 && response.data) {
+                // Check if response is a JSON error message
+                const contentType = response.headers['content-type'];
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = JSON.parse(response.data.toString());
+                    throw new Error(`Python server error: ${errorData.detail || 'Unknown error'}`);
+                }
+
                 const processedImageName = `bg-removed-mask-guided-${Date.now()}.png`;
                 const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
                 
-                console.log('MASK-GUIDED background removed, uploaded to:', imageUrl);
-                console.log('Processing time:', response.headers['x-processing-time']);
-                console.log('Mask-guided:', response.headers['x-mask-guided']);
+                console.log('✅ Mask-guided background removal completed successfully');
+                console.log('📊 Processing stats:', {
+                    processingTime: response.headers['x-processing-time'],
+                    maskGuided: response.headers['x-mask-guided'],
+                    method: response.headers['x-method'],
+                    quality: response.headers['x-quality'],
+                    postProcess: response.headers['x-post-process']
+                });
+                
                 return imageUrl;
             } else {
-                throw new Error(`HuggingFace Mask-Guided API returned status ${response.status}`);
+                throw new Error(`Mask-guided background removal API returned status ${response.status}`);
             }
         }
-        
         catch (error) {
-            console.error('Error in HuggingFace mask-guided background removal:', error.message);
+            console.error('❌ Mask-guided background removal error:', error.message);
             
-            // 🔄 Fallback: Try regular background removal if mask-guided fails
-            console.log('Falling back to regular HuggingFace background removal...');
+            console.log('🔄 Falling back to basic background removal');
             return await EditorModel.removeBackgroundLocal({ imageFile, imageName });
         }
     }

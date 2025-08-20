@@ -31,22 +31,22 @@ class EditorController {
                 });
             }
 
-            if (result.output.length > 0) {
+            if (output.output && output.output.length > 0) {
                 const user = req.user;                
                 const service = formatServicePath(req.path);
                 trackUsage(user.uuid, user.username, user.email, service);
 
                 res.status(200).json({
                     success: true,
-                    image: result.output[0]
+                    image: output.output[0]
                 });
             }
 
-            else if(result.id){
+            else if(output.id){
                 res.status(202).json({
                     success: true,
                     message: 'Enhancing in progress',
-                    id: result.id
+                    id: output.id
                 });
             }
 
@@ -492,18 +492,22 @@ class EditorController {
             const maskFile = req.files.mask[0].buffer;
             const maskName = req.files.mask[0].originalname;
 
+            const postProcessMask = req.body.post_process_mask !== 'true';
+
             console.log('Processing mask-guided background removal:', {
                 imageName,
                 maskName,
                 imageSize: imageFile.length,
-                maskSize: maskFile.length
+                maskSize: maskFile.length,
+                postProcessMask  
             });
 
             const result = await EditorModel.removeBackgroundWithMask({
                 imageFile, 
                 imageName,
                 maskFile,
-                maskName
+                maskName,
+                postProcessMask  
             });
 
             if (result) {
@@ -516,7 +520,8 @@ class EditorController {
                 res.status(200).json({
                     success: true,
                     image: resultUrl,
-                    message: "Mask-guided background removal successful! 🎨"
+                    message: "Mask-guided background removal successful! 🎨",
+                    postProcessed: postProcessMask  
                 });
             } else {
                 res.status(400).json({
