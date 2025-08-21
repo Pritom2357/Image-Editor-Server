@@ -3,6 +3,17 @@ const trackUsage = require('../utility/trackUsage');
 const formatServicePath = require('../utility/formatServicePath');
 const FetchQueuedImage = require('../utility/fetch-queued-image');
 
+const safeTrackUsage = (req, path) => {
+  try {
+    if (!req || !req.user) return; 
+    const service = formatServicePath(path);
+    const { uuid, username, email } = req.user;
+    if (uuid) trackUsage(uuid, username, email, service);
+  } catch (e) {
+    console.warn('trackUsage skipped:', e.message);
+  }
+};
+
 class EditorController {
 
     static NSFW_MESSAGE = 'Please Follow Our NSFW Guidelines and Don\'t Upload or Try To Generate Inappropriate Content';
@@ -32,10 +43,7 @@ class EditorController {
             }
 
             if (output.output && output.output.length > 0) {
-                const user = req.user;                
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path); // was: trackUsage(user.uuid, ...)
                 res.status(200).json({
                     success: true,
                     image: output.output[0]
@@ -99,10 +107,7 @@ class EditorController {
             }
 
             if (result.output.length > 0) {
-                const user = req.user;                
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     image: result.output[0]
@@ -154,10 +159,7 @@ class EditorController {
             }
 
             if (output) {
-                const user = req.user;                
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     images: output
@@ -210,10 +212,7 @@ class EditorController {
             }
 
             if (output) {
-                const user = req.user;                
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     images: output
@@ -276,11 +275,7 @@ class EditorController {
 
             if(result){
                 const resultUrl = Array.isArray(result) ? result[0] : result;
-
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     image: resultUrl,
@@ -353,11 +348,7 @@ class EditorController {
 
             if (result) {
                 const resultUrl = Array.isArray(result) ? result[0] : result;
-
-                const user = req.user;                
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-                
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     image: resultUrl,
@@ -402,10 +393,7 @@ class EditorController {
             });
 
             if (result) {
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     image: result,
@@ -507,21 +495,17 @@ class EditorController {
                 imageName,
                 maskFile,
                 maskName,
-                postProcessMask  
+                postProcessMask
             });
 
             if (result) {
                 const resultUrl = Array.isArray(result) ? result[0] : result;
-
-                const user = req.user;
-                const service = formatServicePath(req.path);
-                trackUsage(user.uuid, user.username, user.email, service);
-
+                safeTrackUsage(req, req.path);
                 res.status(200).json({
                     success: true,
                     image: resultUrl,
                     message: "Mask-guided background removal successful! 🎨",
-                    postProcessed: postProcessMask  
+                    postProcessed: postProcessMask
                 });
             } else {
                 res.status(400).json({
