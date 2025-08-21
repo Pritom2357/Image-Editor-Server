@@ -78,6 +78,7 @@ router.post('/remove-objects', upload.single('mask'), EditorController.removeObj
 
 // Local background removal 
 router.post('/remove-background-local', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocal);
+router.post('/remove-background-local-enhanced', authenticateToken, upload.single('image'), EditorController.removeBackgroundLocalEnhanced);
 
 // Mask creation route
 // router.post('/create-mask', authenticateToken, upload.single('image'), EditorController.createMaskOnly);
