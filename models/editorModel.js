@@ -476,93 +476,89 @@ class EditorModel {
         }
     }
 
-    static async removeBackgroundEnhanced({
-        imageFile, 
+    static async removeBackgroundLocalEnhanced({
+        imageFile,
         imageName,
-        addBackground = false,
-        bgColorR = 255,
-        bgColorG = 255,
-        bgColorB = 255,
-        transparency = 1.0,
-        brightness = 1.0,
-        saturation = 1.0,
-        contrast = 1.0
-    }) {
+        addBackground,
+        bgColorR,
+        bgColorG,
+        bgColorB,
+        transparency,
+        brightness,
+        saturation,
+        contrast
+      }) {
         try {
-            console.log("Starting ENHANCED HuggingFace background removal");
-            
-            // Explicitly log the actual values being sent to Python
-            console.log(`✅ ACTUAL COLORS BEING SENT: R=${bgColorR}, G=${bgColorG}, B=${bgColorB}`);
-            console.log(`Enhancements: bg=${addBackground}, transparency=${transparency}, brightness=${brightness}, saturation=${saturation}, contrast=${contrast}`);
-
-            const FormData = require('form-data');
-            const form = new FormData();
-            
-            // Add image file
-            form.append('image', imageFile, {
-                filename: imageName,
-                contentType: 'image/jpeg'
-            });
-
-            // Add parameters - ensure all are converted to strings
-            form.append('add_background', "True");  // Force it to True
-            form.append('bg_color_r', bgColorR.toString());
-            form.append('bg_color_g', bgColorG.toString());
-            form.append('bg_color_b', bgColorB.toString());
-            form.append('transparency', transparency.toString());
-            form.append('brightness', brightness.toString());
-            form.append('saturation', saturation.toString());
-            form.append('contrast', contrast.toString());
-
-            const response = await axios.post(EditorModel.REMBG_HF_URL, form, {
-                headers: {
-                    ...form.getHeaders(),
-                },
-                responseType: 'arraybuffer',
-                timeout: 180000 // 3 minute timeout
-            });
-
-            if (response.status === 200 && response.data) {
-                // Check if response is a JSON error message
-                const contentType = response.headers['content-type'];
-                if (contentType && contentType.includes('application/json')) {
-                    const errorData = JSON.parse(response.data.toString());
-                    throw new Error(`Python server error: ${errorData.detail || 'Unknown error'}`);
-                }
-
-                // Get output format from header or determine from settings
-                const outputFormat = response.headers['x-output-format'] || (addBackground ? 'jpg' : 'png');
-                const processedImageName = `bg-removed-enhanced-${Date.now()}.${outputFormat}`;
-                
-                console.log('Uploading image to cloud storage...');
-                const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
-                console.log('✅ Image uploaded successfully to cloud');
-                
-                console.log('✅ Enhanced background removal completed successfully');
-                console.log('📊 Processing stats:', {
-                    processingTime: response.headers['x-processing-time'],
-                    quality: response.headers['x-quality'],
-                    enhanced: response.headers['x-enhanced'],
-                    backgroundAdded: response.headers['x-background-added'],
-                    outputFormat: response.headers['x-output-format']
-                });
-                
-                return imageUrl;
-            } else {
-                throw new Error(`Enhanced background removal API returned status ${response.status}`);
-            }
+          console.log('Starting ENHANCED HuggingFace background removal');
+          console.log(`Using endpoint: ${EditorModel.REMBG_HF_URL}`);
+          console.log(`✅ ACTUAL COLORS BEING SENT: R=${bgColorR}, G=${bgColorG}, B=${bgColorB}`);
+          console.log(
+            `Enhancements: bg=${addBackground}, transparency=${transparency}, brightness=${brightness}, saturation=${saturation}, contrast=${contrast}`
+          );
+  
+          const FormData = require('form-data');
+          const form = new FormData();
+  
+          form.append('image', imageFile, {
+            filename: imageName,
+            contentType: 'image/jpeg'
+          });
+  
+          form.append('add_background', addBackground ? 'True' : 'False');
+          form.append('bg_color_r', bgColorR.toString());
+          form.append('bg_color_g', bgColorG.toString());
+          form.append('bg_color_b', bgColorB.toString());
+          form.append('transparency', transparency.toString());
+          form.append('brightness', brightness.toString());
+          form.append('saturation', saturation.toString());
+          form.append('contrast', contrast.toString());
+  
+          const response = await axios.post(EditorModel.REMBG_HF_URL, form, {
+            headers: {
+              ...form.getHeaders()
+            },
+            responseType: 'arraybuffer',
+            timeout: 180000
+          });
+  
+          if (response.status !== 200 || !response.data) {
+            throw new Error(`Enhanced background removal API returned status ${response.status}`);
+          }
+  
+          const contentType = response.headers['content-type'];
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = JSON.parse(Buffer.from(response.data).toString());
+            throw new Error(`Python server error: ${errorData.detail || 'Unknown error'}`);
+          }
+  
+          const outputFormat = (response.headers['x-output-format'] || 'png').toLowerCase();
+          const processedImageName = `bg-removed-enhanced-${Date.now()}.${outputFormat}`;
+  
+          console.log('Uploading image to cloud storage...');
+          const imageUrl = await uploadToCloud(Buffer.from(response.data), processedImageName);
+          console.log('✅ Image uploaded successfully to cloud');
+  
+          console.log('✅ Enhanced background removal completed successfully');
+          console.log('📊 Processing stats:', {
+            processingTime: response.headers['x-processing-time'],
+            quality: response.headers['x-quality'],
+            enhanced: response.headers['x-enhanced'],
+            backgroundAdded: response.headers['x-background-added'],
+            outputFormat: response.headers['x-output-format']
+          });
+  
+          return imageUrl;
         } catch (error) {
-            console.error('❌ Enhanced background removal error:', error.message);
-            
-            // Fall back to basic background removal
-            if (error.message.includes('Python server') || error.message.includes('timeout')) {
-                console.log('🔄 Falling back to basic background removal');
-                return await EditorModel.removeBackgroundLocal({ imageFile, imageName });
-            }
-            
-            throw error;
+          console.error('❌ Enhanced background removal error:', error.message);
+          // Optional: fallback to basic removal or upstream service
+          throw error;
         }
-    }
+      }
+  
+      // Optional alias if other parts call removeBackgroundEnhanced
+      static async removeBackgroundEnhanced(params) {
+        return this.removeBackgroundLocalEnhanced(params);
+      }
 }
 
 module.exports = EditorModel;

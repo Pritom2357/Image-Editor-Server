@@ -35,38 +35,38 @@ router.get('/test-routes', (req, res) => {
     });
 });
 
-// Test route for Rembg background removal
-router.get('/test-node-bg-removal', async (req, res) => {
-    try {
-        const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
+// // Test route for Rembg background removal
+// router.get('/test-node-bg-removal', async (req, res) => {
+//     try {
+//         const BackgroundRemovalNodeService = require('../services/backgroundRemovalNodeService');
         
-        // Create a simple test image (1x1 pixel)
-        const testBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
+//         // Create a simple test image (1x1 pixel)
+//         const testBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
         
-        console.log('Testing Rembg background removal...');
+//         console.log('Testing Rembg background removal...');
         
-        // Test initialization
-        await BackgroundRemovalNodeService.initializeRembg();
-        console.log('Rembg initialized successfully');
+//         // Test initialization
+//         await BackgroundRemovalNodeService.initializeRembg();
+//         console.log('Rembg initialized successfully');
         
-        // Test with a small image
-        const result = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(testBuffer);
+//         // Test with a small image
+//         const result = await BackgroundRemovalNodeService.removeBackgroundFromBuffer(testBuffer);
         
-        res.json({
-            success: true,
-            message: 'Rembg background removal is working!',
-            testResultSize: result.length,
-            serviceReady: true
-        });
-    } catch (error) {
-        console.error('Rembg test failed:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            stack: error.stack
-        });
-    }
-});
+//         res.json({
+//             success: true,
+//             message: 'Rembg background removal is working!',
+//             testResultSize: result.length,
+//             serviceReady: true
+//         });
+//     } catch (error) {
+//         console.error('Rembg test failed:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: error.message,
+//             stack: error.stack
+//         });
+//     }
+// });
 
 // NEW WORKFLOW ROUTES
 
