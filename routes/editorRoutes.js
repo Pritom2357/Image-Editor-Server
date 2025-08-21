@@ -83,7 +83,6 @@ router.post('/remove-background-local-enhanced', upload.single('image'), EditorC
 // Mask-guided background removal (expects both image and mask files)
 router.post(
     '/remove-background-with-mask',
-    authenticateToken,
     upload.fields([
         { name: 'image', maxCount: 1 },
         { name: 'mask', maxCount: 1 }
